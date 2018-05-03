@@ -220,8 +220,10 @@ public class MainActivity extends AppCompatActivity implements IComm{
 	{
 		android.os.Handler mHandler = getWindow().getDecorView().getHandler();
 		mHandler.post(() ->
-				syncBluetooth.setEnabled(true));
+                {
+				syncBluetooth.setEnabled(true);
                 logValves.setEnabled(true);
+                });
 	}
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)

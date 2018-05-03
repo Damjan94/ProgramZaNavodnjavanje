@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Irrigation Software</string>
+    <string name="minutes">Min</string>
+    <string name="valve_name">Valve name</string>
+    <string name="valve_number">Num</string>
+    <string name="on_off">Off/On</string>
+    <string name="enter_number_prompt">Please enter a number</string>
+    <string name="positive_response">OK</string>
+    <string name="negative_response">Cancel</string>
+    <string name="time">Time</string>
+    <string name="time_count_down">0</string>
+    <string name="monday">Mon</string>
+    <string name="tuesday">Tue</string>
+    <string name="wednesday">Wed</string>
+    <string name="thursday">Thu</string>
+    <string name="friday">Fri</string>
+    <string name="saturday">Sat</string>
+    <string name="sunday">Sun</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="high_percentage_warning">High percentage:</string>
+    <string name="sync_bluetooth">Sync bluetooth</string>
+    <string name="add_valve">Add valve</string>
+    <string name="confirm_valve_option_delete">You are about to delete a valve No.:</string>
+    <string name="valve">Valve</string>
+    <string name="no_bluetooth">Can\'t find bluetooth</string>
+</resources>

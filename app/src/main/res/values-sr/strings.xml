@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">Програм за наводњавање</string>
+    <string name="minutes">Мин</string>
+    <string name="valve_name">Име вентила</string>
+    <string name="valve_number">Бр. вентила</string>
+    <string name="on_off">искључено/укључено</string>
+    <string name="enter_number_prompt">Укуцајте број</string>
+    <string name="positive_response">У реду</string>
+    <string name="negative_response">Откажи</string>
+    <string name="time">Време</string>
+    <string name="time_count_down">0</string>
+    <string name="monday">Пон</string>
+    <string name="tuesday">Уто</string>
+    <string name="wednesday">Сре</string>
+    <string name="thursday">Чет</string>
+    <string name="friday">Пет</string>
+    <string name="saturday">Суб</string>
+    <string name="sunday">Нед</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="high_percentage_warning">Висок проценат:</string>
+    <string name="sync_bluetooth">Синхронизуј bluetooth</string>
+    <string name="add_valve">Додај вентил</string>
+    <string name="confirm_valve_option_delete">Обрисаћете вентил бр.:</string>
+    <string name="valve">Вентил</string>
+</resources>

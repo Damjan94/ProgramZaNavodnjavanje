@@ -48,7 +48,8 @@ public class MainActivity extends AppCompatActivity implements IComm{
 	private Thread m_loadFileThread = null;
 	private final int REQUEST_ENABLE_BT = 10;
 	private BluetoothComms m_blueComms;
-	
+
+    Button logValves;
 	
 	final String CLOCK_HOUR = "Hour";
 	final String CLOCK_MINUTE = "Minute";
@@ -130,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements IComm{
 		m_RecyclerView.addItemDecoration(decoration);
 		((DefaultItemAnimator) m_RecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
  	
-		Button logValves = findViewById(R.id.logValvesFromArduino);
+		logValves = findViewById(R.id.logValvesFromArduino);
 		logValves.setOnClickListener(v ->
 		{
 			try
@@ -187,7 +188,7 @@ public class MainActivity extends AppCompatActivity implements IComm{
 				e.printStackTrace();
 			}
 		});
-		
+        logValves.setEnabled(false);
 		
 		syncBluetooth = findViewById(R.id.bluetoothSync);
 		syncBluetooth.setOnClickListener(new View.OnClickListener()
@@ -220,6 +221,7 @@ public class MainActivity extends AppCompatActivity implements IComm{
 		android.os.Handler mHandler = getWindow().getDecorView().getHandler();
 		mHandler.post(() ->
 				syncBluetooth.setEnabled(true));
+                logValves.setEnabled(true);
 	}
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)

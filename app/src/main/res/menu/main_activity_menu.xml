@@ -4,4 +4,9 @@
         android:title="@string/add_valve"
         android:icon="@drawable/ic_add_circle_outline_black_24dp"
         android:id="@+id/addValveButton"/>
+    <item
+        android:title="@string/connect_bluetooth"
+        android:icon="@drawable/ic_add_circle_outline_black_24dp"
+        android:id="@+id/connectBluetooth"/>
+
 </menu>

@@ -23,4 +23,7 @@
     <string name="confirm_valve_option_delete">You are about to delete a valve No.:</string>
     <string name="valve">Valve</string>
     <string name="no_bluetooth">Can\'t find bluetooth</string>
+    <string name="console_mode">Console</string>
+    <string name="connect_bluetooth">Connect bluetooth</string>
+    <string name="no_bluetooth_found">Can\'t find Bluetooth on this device.</string>
 </resources>

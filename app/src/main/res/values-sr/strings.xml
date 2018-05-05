@@ -22,4 +22,7 @@
     <string name="add_valve">Додај вентил</string>
     <string name="confirm_valve_option_delete">Обрисаћете вентил бр.:</string>
     <string name="valve">Вентил</string>
+    <string name="console_mode">Конзола</string>
+    <string name="connect_bluetooth">Закачи bluetooth</string>
+    <string name="no_bluetooth_found">Bluetooth није пронађен на овом уређају.</string>
 </resources>

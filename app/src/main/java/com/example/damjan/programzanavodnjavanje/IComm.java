@@ -20,7 +20,4 @@ public interface IComm {
     void removeItem(int viewHolderPosition);
     void addItem(ValveOptionsData item);
     void changeDataSet(ArrayList<ValveOptionsData> data);
-    
-    //TODO delete the hacky function below
-	void enableSendButton();
 }

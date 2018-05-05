@@ -8,18 +8,53 @@ import android.widget.Toast;
 
 import com.example.damjan.programzanavodnjavanje.IComm;
 import com.example.damjan.programzanavodnjavanje.MainActivity;
+import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Calendar;
 import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * Created by damjan on 4/5/18.
  */
 
-public class BluetoothComms extends Thread
+public interface IBluetoothComms
 {
+
+	void connected(BluetoothSocket socket);
+
+	void setTemperature(float aFloat);
+
+	void setTime(Calendar timeAsync);
+
+	void setValves(ValveOptionsData[] valvesAsync);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	/*
 	private InputStream m_input;
 	private OutputStream m_output;
 	private final ArrayBlockingQueue<Byte> bytes;
@@ -107,7 +142,7 @@ public class BluetoothComms extends Thread
 		return bytes.take();
 	}
 	
-	void setSocket(BluetoothSocket socket)
+	void connected(BluetoothSocket socket)
 	{
 		if(!socket.isConnected())
 		{
@@ -130,3 +165,4 @@ public class BluetoothComms extends Thread
 		MainActivity.mainActivity.runOnUiThread(()->{Toast.makeText(MainActivity.mainActivity, "Connected to:"+socket.getRemoteDevice().getName(), Toast.LENGTH_SHORT).show();});
 	}
 }
+*/

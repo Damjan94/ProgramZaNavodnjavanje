@@ -8,5 +8,8 @@
         android:title="@string/connect_bluetooth"
         android:icon="@drawable/ic_add_circle_outline_black_24dp"
         android:id="@+id/connectBluetooth"/>
-
+    <item
+        android:title="@string/console_mode"
+        android:icon="@drawable/ic_add_circle_outline_black_24dp"
+        android:id="@+id/consoleModeButton"/>
 </menu>

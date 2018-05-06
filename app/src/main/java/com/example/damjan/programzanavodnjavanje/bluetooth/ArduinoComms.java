@@ -22,6 +22,7 @@ public class ArduinoComms extends Thread
 	{
 		DO_NOTHING,
 		RECEIVE_TEMPERATURE,
+		RECEIVE_TEMPERATURE_FLOAT,
 		RECEIVE_TIME,
 		RECEIVE_VALVES
 	}
@@ -29,7 +30,8 @@ public class ArduinoComms extends Thread
 	private final static byte SEND_VALVE = 0x2c;
 	private final static byte RECEIVE_VALVE = 0x1c;
 
-	private final static byte RECEIVE_TEMP = 0x1b;
+	private final static byte RECEIVE_TEMP = 0x2b;
+	private final static byte RECEIVE_TEMP_FLOAT = 0x1b;
 
 	private final static byte SEND_TIME = 0x2a;
 	private final static byte RECEIVE_TIME = 0x1a;
@@ -61,6 +63,10 @@ public class ArduinoComms extends Thread
 						state = State.DO_NOTHING;
 						break;
 					}
+					case RECEIVE_TEMPERATURE_FLOAT:
+					{
+						m_comms.setTemperature(getTempFloatAsync());
+					}
 					case RECEIVE_VALVES: {
 						m_comms.setValves(getValvesAsync());
 						state = State.DO_NOTHING;
@@ -74,7 +80,10 @@ public class ArduinoComms extends Thread
 					case DO_NOTHING://pass trough
 					default: {
 						try {
-							this.wait();
+							synchronized (this)
+							{
+								this.wait();
+							}
 						} catch (InterruptedException e) {
 							Log.e("bluetooth connect thread", e.toString());
 						}
@@ -92,21 +101,42 @@ public class ArduinoComms extends Thread
 		{
 			m_outputStream.write(RECEIVE_TEMP);
 			state = State.RECEIVE_TEMPERATURE;
-			this.notify();
+			synchronized (this)
+			{
+				this.notify();
+			}
 		}
 	}
 
-	private float getTempAsync() throws IOException
+	private int getTempAsync() throws IOException
+	{
+		return m_inputStream.read();
+	}
+
+	public void getTempFloat() throws IOException
+	{
+		if(/*something*/true)
+		{
+			m_outputStream.write(RECEIVE_TEMP_FLOAT);
+			state = State.RECEIVE_TEMPERATURE_FLOAT;
+			synchronized (this)
+			{
+				this.notify();
+			}
+		}
+	}
+
+	private float getTempFloatAsync() throws IOException
 	{
 		byte[] temperature = new byte[4];
-		int bytesRead = m_inputStream.read(temperature);
-		if(bytesRead != temperature.length)
-		{
-			//TODO: read the rest of it?
-		}
-		ByteBuffer bb = ByteBuffer.allocate(4);
-		bb.order(ByteOrder.LITTLE_ENDIAN);
-		bb.put(temperature);
+		int bytesRead = 0;
+
+		do {
+			bytesRead += m_inputStream.read(temperature, bytesRead, temperature.length-bytesRead);
+		}while(bytesRead != temperature.length);
+
+		ByteBuffer bb = ByteBuffer.wrap(temperature);
+		bb.order(ByteOrder.BIG_ENDIAN);
 		return bb.getFloat();
 	}
 
@@ -116,7 +146,10 @@ public class ArduinoComms extends Thread
 		{
 			m_outputStream.write(RECEIVE_VALVE);
 			state = State.RECEIVE_VALVES;
-			this.notify();
+			synchronized (this)
+			{
+				this.notify();
+			}
 		}
 	}
 
@@ -202,7 +235,10 @@ public class ArduinoComms extends Thread
 		{
 			m_outputStream.write(RECEIVE_TIME);
 			state = State.RECEIVE_TIME;
-			this.notify();
+			synchronized (this)
+			{
+				this.notify();
+			}
 		}
 	}
 

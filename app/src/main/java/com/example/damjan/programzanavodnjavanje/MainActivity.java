@@ -121,6 +121,25 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 				}
 				return true;
 			}
+			case R.id.showTemperature:
+			{
+				try {
+					m_arduinoComms.getTemp();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				return true;
+			}
+			case R.id.showTemperatureFloat:
+			{
+				try {
+					m_arduinoComms.getTempFloat();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				return true;
+			}
+
 			default:
 			{
 				return super.onOptionsItemSelected(item);
@@ -154,16 +173,24 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 		try {
 			m_arduinoComms = new ArduinoComms(socket, this);
 			m_arduinoComms.start();
-			syncBluetooth.setEnabled(true);
+			android.os.Handler mHandler = getWindow().getDecorView().getHandler();
+			mHandler.post(() ->
+			{
+				syncBluetooth.setEnabled(true);
+			});
 		} catch (IOException e) {
 			Log.e("Main Activity", e.toString());
 		}
 	}
 
 	@Override
-	public void setTemperature(float aFloat)
+	public void setTemperature(float temperature)
 	{
-
+		android.os.Handler mHandler = getWindow().getDecorView().getHandler();
+		mHandler.post(() ->
+		{
+			Toast.makeText(this, "temp = "+temperature, Toast.LENGTH_LONG).show();
+		});
 	}
 
 	@Override

@@ -13,11 +13,7 @@
         android:icon="@drawable/ic_add_circle_outline_black_24dp"
         android:id="@+id/consoleModeButton"/>
     <item
-        android:title="show temperature float"
-        android:icon="@drawable/ic_add_circle_outline_black_24dp"
-        android:id="@+id/showTemperatureFloat"/>
-    <item
-        android:title="show temperature"
+        android:title="@string/show_temperature"
         android:icon="@drawable/ic_add_circle_outline_black_24dp"
         android:id="@+id/showTemperature"/>
 </menu>

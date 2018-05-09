@@ -22,14 +22,18 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public interface IBluetoothComms
 {
+	void connected();
 
-	void connected(BluetoothSocket socket);
+	void connectionFailed();
 
-	void setTemperature(float aFloat);
+	void disconnected();
 
-	void setTime(Calendar timeAsync);
+	void setTemperature(float temperature);
 
-	void setValves(ValveOptionsData[] valvesAsync);
+	void setTime(Calendar time);
+
+	void setValves(ValveOptionsData[] valves);
+
 }
 
 

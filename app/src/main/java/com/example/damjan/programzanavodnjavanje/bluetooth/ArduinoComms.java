@@ -1,8 +1,9 @@
 package com.example.damjan.programzanavodnjavanje.bluetooth;
 
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.util.Log;
 
+import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
 import com.example.damjan.programzanavodnjavanje.MainActivity;
 import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
@@ -12,21 +13,30 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 public class ArduinoComms extends Thread
 {
-	enum State
+
+	private static final ArduinoComms ONLY_INSTANCE = new ArduinoComms();
+
+	static
 	{
-		DO_NOTHING,
-		RECEIVE_TEMPERATURE,
-		RECEIVE_TEMPERATURE_FLOAT,
-		RECEIVE_TIME,
-		RECEIVE_VALVES
+		ONLY_INSTANCE.start();
 	}
-	private State state;
+
+	private ArduinoComms()
+	{
+	}
+
+	private final static String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
+
 	private final static byte SEND_VALVE = 0x2c;
 	private final static byte RECEIVE_VALVE = 0x1c;
 
@@ -36,225 +46,313 @@ public class ArduinoComms extends Thread
 	private final static byte SEND_TIME = 0x2a;
 	private final static byte RECEIVE_TIME = 0x1a;
 
-	private final InputStream m_inputStream;
-	private final OutputStream m_outputStream;
+	private static final BlockingQueue<Runnable> TASK_LIST = new LinkedBlockingQueue<>();
 
-	private final IBluetoothComms m_comms;
-	private final BluetoothSocket m_socket;
-	public ArduinoComms(BluetoothSocket socket, IBluetoothComms comms) throws IOException
-	{
-		m_socket = socket;
-		m_inputStream = m_socket.getInputStream();
-		m_outputStream = m_socket.getOutputStream();
+	private static InputStream inputStream;
+	private static OutputStream outputStream;
 
-		m_comms = comms;
-		state = State.DO_NOTHING;
-	}
+	private static ArrayList<IBluetoothComms> comms = new ArrayList<>();
+	private static BluetoothSocket socket;
 
 	@Override
 	public void run()
 	{
-		while(m_socket.isConnected()) {
-			//todo: synchronize on something, to prevent state from being changed in other threads
+		while(true)
+		{
 			try {
-				switch (state) {
-					case RECEIVE_TEMPERATURE: {
-						m_comms.setTemperature(getTempAsync());
-						state = State.DO_NOTHING;
-						break;
-					}
-					case RECEIVE_TEMPERATURE_FLOAT:
+				TASK_LIST.take().run();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	public static void connect(final BluetoothDevice device)
+	{
+		connect(device, 3);
+	}
+	public static void connect(final BluetoothDevice device, int connectRetryCount)
+	{
+
+		TASK_LIST.add(()->
+		{
+			if(socket != null && socket.isConnected() && socket.getRemoteDevice().equals(device))
+			{
+				return;
+			}
+
+			disconnectInternal();
+
+			UUID uuid = UUID.fromString(MY_UUID);
+			try {
+				socket = device.createRfcommSocketToServiceRecord(uuid);
+			} catch (IOException e) {
+				ConsoleActivity.LOG.append(e.toString());
+				notifyConnectionFailed();
+				return;
+			}
+			int retryCount = 0;
+			do {
+				try {
+					socket.connect();
+					inputStream = socket.getInputStream();
+					outputStream = socket.getOutputStream();
+				} catch (IOException e) {
+					ConsoleActivity.LOG.append(e.toString()+'\n');
+					retryCount++;
+				}
+			}while(retryCount < connectRetryCount && !socket.isConnected());
+			if(socket.isConnected())
+			{
+				notifyConnected();
+			}
+			else
+			{
+				//failed to connect...
+				notifyConnectionFailed();
+			}
+		});
+	}
+
+	//we add the task to notify disconnected because
+	//disconnectInternal is used internally and we don't want to
+	//notify listeners from internal calls
+	public static void disconnect()
+	{
+		TASK_LIST.add(ArduinoComms::disconnectInternal);
+		TASK_LIST.add(ArduinoComms::notifyDisconnected);
+		//TODO if waiting at socket.connect from connect() notify the tread
+	}
+
+	private static void disconnectInternal()
+	{
+		try {
+			if(socket == null)
+			{
+				return;
+			}
+			socket.close();
+			socket = null;
+			inputStream = null;
+			outputStream = null;
+		} catch (IOException e) {
+			ConsoleActivity.LOG.append(e.toString());
+		}
+	}
+
+	public static void registerListener(IBluetoothComms comm)
+	{
+		if(comms.contains(comm))
+		{
+			return;
+		}
+		comms.add(comm);
+	}
+
+	public static void unregisterListener(IBluetoothComms comm)
+	{
+		comms.remove(comm);
+	}
+
+	public static void getTemp()
+	{
+		TASK_LIST.add(()->
+		{
+			try {
+				outputStream.write(RECEIVE_TEMP);
+				int temp = inputStream.read();
+				notifySetTemperature(temp);
+			} catch (IOException e) {
+				ConsoleActivity.LOG.append(e.toString());
+			}
+		});
+	}
+
+	public static void getTempFloat()
+	{
+		TASK_LIST.add(() ->
+		{
+			try {
+				outputStream.write(RECEIVE_TEMP_FLOAT);
+				byte[] temperature = new byte[4];
+				int bytesRead = 0;
+
+				do {
+					bytesRead += inputStream.read(temperature, bytesRead, temperature.length - bytesRead);
+				} while (bytesRead != temperature.length);
+
+				ByteBuffer bb = ByteBuffer.wrap(temperature);
+				bb.order(ByteOrder.BIG_ENDIAN);
+				float temp = bb.getFloat();
+				notifySetTemperature(temp);
+			} catch (IOException e) {
+				ConsoleActivity.LOG.append(e.toString());
+			}
+		});
+	}
+
+	public static void getValves()
+	{
+		TASK_LIST.add(()->
+		{
+			try {
+				outputStream.write(RECEIVE_VALVE);
+				int size = inputStream.read();
+				ValveOptionsData[] data = new ValveOptionsData[size];
+				for(int i = 0; i < size; i++)
+				{
+					byte[] valveFromArduino = new byte[ValveOptionsData.VALVE_DATA_NETWORK_SIZE];
+					for (int j = 0; j < valveFromArduino.length; j++)
 					{
-						m_comms.setTemperature(getTempFloatAsync());
+						valveFromArduino[j] = (byte) inputStream.read();
 					}
-					case RECEIVE_VALVES: {
-						m_comms.setValves(getValvesAsync());
-						state = State.DO_NOTHING;
-						break;
+
+					int valveNumber = valveFromArduino[0];
+					byte hour = valveFromArduino[1];
+					byte minute = valveFromArduino[2];
+
+					//arduino sends days on as a byte
+					//with most significant bit being saturday
+					//second to last(least) significant(8-7) bit being sunday
+					//the least significant bit is not used
+					byte daysOn = valveFromArduino[3];
+					boolean[] repeatDays = new boolean[7];
+					for(int k = 0; k< repeatDays.length; k++)
+					{
+						repeatDays[k] = ((daysOn >> k+1) & 0x1) == 1;
 					}
-					case RECEIVE_TIME: {
-						m_comms.setTime(getTimeAsync());
-						state = State.DO_NOTHING;
-						break;
-					}
-					case DO_NOTHING://pass trough
-					default: {
-						try {
-							synchronized (this)
-							{
-								this.wait();
-							}
-						} catch (InterruptedException e) {
-							Log.e("bluetooth connect thread", e.toString());
-						}
+
+					ByteBuffer bb = ByteBuffer.allocate(2);
+					bb.order(ByteOrder.BIG_ENDIAN);
+					bb.put(valveFromArduino[4]);
+					bb.put(valveFromArduino[5]);
+					short timeCountdown = bb.getShort(0);
+
+					data[i] = new ValveOptionsData(
+							MainActivity.mainActivity.getResources().getString(R.string.valve) + valveNumber,
+							valveNumber,
+							100,
+							hour,
+							minute,
+							timeCountdown,
+							repeatDays,
+							false
+					);
+				}
+				notifySetValves(data);
+			} catch (IOException e) {
+				ConsoleActivity.LOG.append(e.toString());
+			}
+		});
+	}
+
+	public static void sendValves(final ValveOptionsData[] valves)
+	{
+		TASK_LIST.add(()->
+		{
+			try {
+				outputStream.write(SEND_VALVE);
+				outputStream.write((byte) valves.length);
+				for (ValveOptionsData data : valves) {
+					byte[] arr = data.getBytesForArduino();
+					for (byte anArr : arr)
+					{
+						outputStream.write(anArr);
 					}
 				}
 			} catch (IOException e) {
-				Log.e("bluetooth connect thread", e.toString());
+				ConsoleActivity.LOG.append(e.toString());
 			}
-		}
+		});
 	}
 
-	public void getTemp() throws IOException
+	private static void sendTime(final Calendar date)
 	{
-		if(/*something*/true)
+		TASK_LIST.add(()->
 		{
-			m_outputStream.write(RECEIVE_TEMP);
-			state = State.RECEIVE_TEMPERATURE;
-			synchronized (this)
-			{
-				this.notify();
+			try {
+				outputStream.write(SEND_TIME);
+				outputStream.write(date.get(Calendar.SECOND));
+				outputStream.write(date.get(Calendar.MINUTE));
+				outputStream.write(date.get(Calendar.HOUR));
+				outputStream.write(date.get(Calendar.DAY_OF_WEEK));
+				outputStream.write(date.get(Calendar.DAY_OF_MONTH));
+				outputStream.write(date.get(Calendar.MONTH));
+				outputStream.write(date.get((Calendar.YEAR)-2000));//arduino uses years from 0-99
+			} catch (IOException e) {
+				ConsoleActivity.LOG.append(e.toString());
 			}
-		}
+		});
+
 	}
 
-	private int getTempAsync() throws IOException
+	public static void getTime() throws IOException
 	{
-		return m_inputStream.read();
-	}
-
-	public void getTempFloat() throws IOException
-	{
-		if(/*something*/true)
+		TASK_LIST.add(()->
 		{
-			m_outputStream.write(RECEIVE_TEMP_FLOAT);
-			state = State.RECEIVE_TEMPERATURE_FLOAT;
-			synchronized (this)
-			{
-				this.notify();
+			try {
+				outputStream.write(RECEIVE_TIME);
+				Calendar date = new GregorianCalendar();
+				date.setFirstDayOfWeek(Calendar.SUNDAY);
+				outputStream.write(RECEIVE_TIME);
+				date.set(Calendar.SECOND, inputStream.read());
+				date.set(Calendar.MINUTE, inputStream.read());
+				date.set(Calendar.HOUR, inputStream.read());
+				date.set(Calendar.DAY_OF_WEEK, inputStream.read());
+				date.set(Calendar.DAY_OF_MONTH, inputStream.read());
+				date.set(Calendar.MONTH, inputStream.read());
+				date.set(Calendar.YEAR, inputStream.read());
+				notifySetTime(date);
+			} catch (IOException e) {
+				ConsoleActivity.LOG.append(e.toString());
 			}
-		}
+		});
 	}
 
-	private float getTempFloatAsync() throws IOException
+	private static void notifyConnected()
 	{
-		byte[] temperature = new byte[4];
-		int bytesRead = 0;
-
-		do {
-			bytesRead += m_inputStream.read(temperature, bytesRead, temperature.length-bytesRead);
-		}while(bytesRead != temperature.length);
-
-		ByteBuffer bb = ByteBuffer.wrap(temperature);
-		bb.order(ByteOrder.BIG_ENDIAN);
-		return bb.getFloat();
-	}
-
-	public void getValves() throws IOException
-	{
-		if(/*something*/true)
+		for(IBluetoothComms comm : comms)
 		{
-			m_outputStream.write(RECEIVE_VALVE);
-			state = State.RECEIVE_VALVES;
-			synchronized (this)
-			{
-				this.notify();
-			}
+			comm.connected();
 		}
 	}
 
-	private ValveOptionsData[] getValvesAsync() throws IOException
+	private static void notifyConnectionFailed()
 	{
-		m_outputStream.write(RECEIVE_VALVE);
-
-		int size = m_inputStream.read();
-		ValveOptionsData[] data = new ValveOptionsData[size];
-		for(int i = 0; i < size; i++)
+		for(IBluetoothComms comm : comms)
 		{
-			byte[] valveFromArduino = new byte[ValveOptionsData.VALVE_DATA_NETWORK_SIZE];
-			for (int j = 0; j < valveFromArduino.length; j++)
-			{
-				valveFromArduino[j] = (byte)m_inputStream.read();
-			}
-
-			int valveNumber = valveFromArduino[0];
-			byte hour = valveFromArduino[1];
-			byte minute = valveFromArduino[2];
-
-			//arduino sends days on as a byte
-			//with most significant bit being saturday
-			//second to last(least) significant(8-7) bit being sunday
-			//the least significant bit is not used
-			byte daysOn = valveFromArduino[3];
-			boolean[] repeatDays = new boolean[7];
-			for(int k = 0; k< repeatDays.length; k++)
-			{
-				repeatDays[k] = ((daysOn >> k+1) & 0x1) == 1;
-			}
-
-			ByteBuffer bb = ByteBuffer.allocate(2);
-			bb.order(ByteOrder.LITTLE_ENDIAN);
-			bb.put(valveFromArduino[4]);
-			bb.put(valveFromArduino[5]);
-			short timeCountdown = bb.getShort(0);
-
-			data[i] = new ValveOptionsData(
-					MainActivity.mainActivity.getResources().getString(R.string.valve) + valveNumber,
-					valveNumber,
-					100,
-					hour,
-					minute,
-					timeCountdown,
-					repeatDays,
-					false
-			);
+			comm.connectionFailed();
 		}
-		return data;
 	}
 
-	public void sendValves(ValveOptionsData[] valves) throws IOException
+	private static void notifyDisconnected()
 	{
-
-		m_outputStream.write(SEND_VALVE);
-		m_outputStream.write((byte)valves.length);
-		for(ValveOptionsData data : valves)
+		for(IBluetoothComms comm : comms)
 		{
-			byte[] arr = data.getBytesForArduino();
-			for (byte anArr : arr)
-			{
-				m_outputStream.write(anArr);
-			}
+			comm.disconnected();
 		}
 	}
 
-	private void sendTime(Calendar date) throws IOException
+	private static void notifySetTemperature(float temperature)
 	{
-		m_outputStream.write(SEND_TIME);
-		m_outputStream.write(date.get(Calendar.SECOND));
-		m_outputStream.write(date.get(Calendar.MINUTE));
-		m_outputStream.write(date.get(Calendar.HOUR));
-		m_outputStream.write(date.get(Calendar.DAY_OF_WEEK));
-		m_outputStream.write(date.get(Calendar.DAY_OF_MONTH));
-		m_outputStream.write(date.get(Calendar.MONTH));
-		m_outputStream.write(date.get((Calendar.YEAR)-2000));//arduino uses years from 0-99
-	}
-
-	public void getTime() throws IOException
-	{
-		if(/*something*/true)
+		for(IBluetoothComms comm : comms)
 		{
-			m_outputStream.write(RECEIVE_TIME);
-			state = State.RECEIVE_TIME;
-			synchronized (this)
-			{
-				this.notify();
-			}
+			comm.setTemperature(temperature);
 		}
 	}
 
-	private Calendar getTimeAsync() throws IOException
+	private static void notifySetTime(Calendar time)
 	{
-		Calendar date = new GregorianCalendar();
-		date.setFirstDayOfWeek(Calendar.SUNDAY);
-		m_outputStream.write(RECEIVE_TIME);
-		date.set(Calendar.SECOND, m_inputStream.read());
-		date.set(Calendar.MINUTE, m_inputStream.read());
-		date.set(Calendar.HOUR, m_inputStream.read());
-		date.set(Calendar.DAY_OF_WEEK, m_inputStream.read());
-		date.set(Calendar.DAY_OF_MONTH, m_inputStream.read());
-		date.set(Calendar.MONTH, m_inputStream.read());
-		date.set(Calendar.YEAR, m_inputStream.read());
+		for(IBluetoothComms comm : comms)
+		{
+			comm.setTime(time);
+		}
+	}
 
-		return date;
+	private static void notifySetValves(ValveOptionsData[] valves)
+	{
+		for(IBluetoothComms comm : comms)
+		{
+			comm.setValves(valves);
+		}
 	}
 }

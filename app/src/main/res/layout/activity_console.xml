@@ -8,18 +8,33 @@
         android:id="@+id/consoleTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="0.9"
+        android:layout_weight="0.98"
+        android:inputType="none"
         android:scrollHorizontally="true"
-        android:singleLine="false"
-        android:text="TextView" />
+        android:scrollbars = "vertical"
+        android:singleLine="false" />
 
-    <EditText
-        android:id="@+id/consoleTextInput"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="0.05"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:text="Name" />
+        android:layout_weight="0.02"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/consoleTextInput"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="0.9"
+            android:inputType="text"
+            android:ems="10"
+            android:singleLine="true" />
+
+        <Button
+            android:id="@+id/consoleButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="0.1"
+            android:text="E" />
+    </LinearLayout>
 
 </LinearLayout>

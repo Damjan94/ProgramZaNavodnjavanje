@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -23,7 +22,6 @@ import android.widget.Toast;
 import com.example.damjan.programzanavodnjavanje.adapters.ValveOptionAdapter;
 import com.example.damjan.programzanavodnjavanje.bluetooth.ArduinoComms;
 import com.example.damjan.programzanavodnjavanje.bluetooth.IBluetoothComms;
-import com.example.damjan.programzanavodnjavanje.bluetooth.ConnectThread;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
 import org.json.JSONArray;
@@ -46,16 +44,6 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 	
 	private boolean m_isResumeExecuted = false;
 	private Thread m_loadFileThread = null;
-	private final int REQUEST_ENABLE_BT = 10;
-	private ArduinoComms m_arduinoComms;
-	
-	final String CLOCK_HOUR = "Hour";
-	final String CLOCK_MINUTE = "Minute";
-	final String CLOCK_SECOND = "Second";
-	final String CLOCK_DAY = "Day";
-	final String CLOCK_DAY_OF_WEEK = "DayOfWeek";
-	final String CLOCK_MONTH = "Month";
-	final String CLOCK_YEAR = "Year";
 
 	private enum Job
 	{
@@ -113,33 +101,14 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 				}
 
 				BluetoothDevice device = defaultAdapter.getBondedDevices().iterator().next();
-				try {
-					ConnectThread connect = new ConnectThread(device, this);
-					connect.start();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+				ArduinoComms.connect(device);
 				return true;
 			}
 			case R.id.showTemperature:
 			{
-				try {
-					m_arduinoComms.getTemp();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+				ArduinoComms.getTempFloat();
 				return true;
 			}
-			case R.id.showTemperatureFloat:
-			{
-				try {
-					m_arduinoComms.getTempFloat();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				return true;
-			}
-
 			default:
 			{
 				return super.onOptionsItemSelected(item);
@@ -168,19 +137,36 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 	Button syncBluetooth;
 
 	@Override
-	public void connected(BluetoothSocket socket)
+	public void connected()
 	{
-		try {
-			m_arduinoComms = new ArduinoComms(socket, this);
-			m_arduinoComms.start();
 			android.os.Handler mHandler = getWindow().getDecorView().getHandler();
 			mHandler.post(() ->
 			{
 				syncBluetooth.setEnabled(true);
+				Toast.makeText(this, "Connected!", Toast.LENGTH_SHORT).show();
 			});
-		} catch (IOException e) {
-			Log.e("Main Activity", e.toString());
-		}
+	}
+
+	@Override
+	public void connectionFailed()
+	{
+		android.os.Handler mHandler = getWindow().getDecorView().getHandler();
+		mHandler.post(() ->
+		{
+			syncBluetooth.setEnabled(true);
+			Toast.makeText(this, "Failed to connect", Toast.LENGTH_SHORT).show();
+		});
+	}
+
+	@Override
+	public void disconnected()
+	{
+		android.os.Handler mHandler = getWindow().getDecorView().getHandler();
+		mHandler.post(() ->
+		{
+			syncBluetooth.setEnabled(false);
+			Toast.makeText(this, "Disconnected!", Toast.LENGTH_SHORT).show();
+		});
 	}
 
 	@Override
@@ -189,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 		android.os.Handler mHandler = getWindow().getDecorView().getHandler();
 		mHandler.post(() ->
 		{
-			Toast.makeText(this, "temp = "+temperature, Toast.LENGTH_LONG).show();
+			Toast.makeText(this, "temp = "+temperature, Toast.LENGTH_SHORT).show();
 		});
 	}
 
@@ -202,7 +188,14 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 	@Override
 	public void setValves(ValveOptionsData[] valvesAsync)
 	{
-
+		for(ValveOptionsData d : valvesAsync)
+		{
+			try {
+				ConsoleActivity.LOG.append(d.toJson().toString(1));
+			} catch (JSONException e) {
+				ConsoleActivity.LOG.append(e.toString());
+			}
+		}
 	}
 
 	@Override
@@ -223,22 +216,12 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 				final ArrayList<ValveOptionsData> valveOptionDataCollection = ValveOptionsData.getValveOptionDataCollection();
 				ValveOptionsData[] arr = new ValveOptionsData[0];
 				arr = valveOptionDataCollection.toArray(arr);
-				try {
-					m_arduinoComms.sendValves(arr);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+				ArduinoComms.sendValves(arr);
+				Toast.makeText(mainActivity, "Sending...", Toast.LENGTH_SHORT).show();
 			}
     	});
 		syncBluetooth.setEnabled(false);
     }
-
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data)
-	{
-		//super.onActivityResult(requestCode, resultCode, data);
-		
-	}
 	
 	@Override
 	protected void onStart()
@@ -277,7 +260,8 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 			
 		}, "File loader thread");
 		m_loadFileThread.start();
-		
+
+		ArduinoComms.registerListener(this);
 	}
 	
 	@Override
@@ -290,7 +274,6 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 			m_loadFileThread.notify();
 		}
 		//get bluetooth stuff done
-		
 	}
 	
 	@Override
@@ -302,7 +285,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 			m_isResumeExecuted = false;
 		}
 		//release bluetooth stuff
-		
+		//ArduinoComms.disconnect();
 	}
 	
 	@Override
@@ -323,6 +306,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 			}
 		});
 		saveData.start();
+		ArduinoComms.unregisterListener(this);
 	}
 	
 	

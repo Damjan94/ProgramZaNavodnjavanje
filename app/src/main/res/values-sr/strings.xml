@@ -25,4 +25,5 @@
     <string name="console_mode">Конзола</string>
     <string name="connect_bluetooth">Закачи bluetooth</string>
     <string name="no_bluetooth_found">Bluetooth није пронађен на овом уређају.</string>
+    <string name="show_temperature">Прикажи температуру</string>
 </resources>

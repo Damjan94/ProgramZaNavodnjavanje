@@ -3,6 +3,7 @@ package com.example.damjan.programzanavodnjavanje.data;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
 import com.example.damjan.programzanavodnjavanje.MainActivity;
 import com.example.damjan.programzanavodnjavanje.R;
 
@@ -149,7 +150,7 @@ public class ValveOptionsData{
 			);
 		} catch (JSONException e)
 		{
-			Log.e("ValveData", "Failed to load data from json\n"+jsonIn.toString());
+			ConsoleActivity.log("Failed to load data from json\n" + jsonIn.toString());
 			data = new ValveOptionsData();
 		}
 		return data;
@@ -170,18 +171,6 @@ public class ValveOptionsData{
                 daysOn |= (0x1 << i+1);
             }
         }
-		/*
-		//least significant bit is saturday, most significant is sunday
-        for (boolean m_repeatDay : m_repeatDays)
-		{
-			daysOn = daysOn << 1;
-			if (m_repeatDay)
-			{
-				daysOn |= 1;
-			}
-		}
-        daysOn = daysOn << 1;
-		*/
 
 		arr[3] = (byte) daysOn;
 		ByteBuffer bb = ByteBuffer.allocate(4);
@@ -282,5 +271,84 @@ public class ValveOptionsData{
     public long getID() {
         return m_id;
     }
+
+    @Override
+	public String toString()
+	{
+		StringBuilder sb = new StringBuilder();
+		sb.append("Valve:\n");
+
+		sb.append("Valve Name: ");
+		sb.append(m_valveName);
+		sb.append('\n');
+
+		sb.append("Valve Number: ");
+		sb.append(m_valveNumber);
+		sb.append('\n');
+
+		sb.append("Percentage: ");
+		sb.append(m_percentage);
+		sb.append('\n');
+
+		sb.append("Turn on hour: ");
+		sb.append(m_hour);
+		sb.append('\n');
+
+		sb.append("Turn on minute: ");
+		sb.append(m_minute);
+		sb.append('\n');
+
+		sb.append("Countdown Time: ");
+		sb.append(m_timeCountdown);
+		sb.append('\n');
+
+		sb.append("Days On: ");
+		for(int i = 0; i < m_repeatDays.length; i++)
+		{
+			if(m_repeatDays[i])
+			{
+				switch(i)
+				{
+					case 0: {
+						sb.append("Sunday, ");
+						break;
+					}
+					case 1: {
+						sb.append("Monday, ");
+						break;
+					}
+					case 2: {
+						sb.append("Tuesday, ");
+						break;
+					}
+					case 3: {
+						sb.append("Wednesday, ");
+						break;
+					}
+					case 4: {
+						sb.append("Thursday, ");
+						break;
+					}
+					case 5: {
+						sb.append("Friday, ");
+						break;
+					}
+					case 6: {
+						sb.append("Saturday, ");
+						break;
+					}
+
+				}
+			}
+		}
+
+		sb.delete(sb.length()- 2, sb.length());
+		
+		sb.append("\nSwitch: ");
+		sb.append(m_masterSwitch);
+		sb.append('\n');
+
+		return sb.toString();
+	}
 	
 }

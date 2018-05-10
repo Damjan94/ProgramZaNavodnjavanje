@@ -188,14 +188,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 	@Override
 	public void setValves(ValveOptionsData[] valvesAsync)
 	{
-		for(ValveOptionsData d : valvesAsync)
-		{
-			try {
-				ConsoleActivity.LOG.append(d.toJson().toString(1));
-			} catch (JSONException e) {
-				ConsoleActivity.LOG.append(e.toString());
-			}
-		}
+
 	}
 
 	@Override

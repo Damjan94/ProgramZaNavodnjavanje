@@ -86,7 +86,7 @@ public class ArduinoComms extends Thread
 			try {
 				socket = device.createRfcommSocketToServiceRecord(uuid);
 			} catch (IOException e) {
-				ConsoleActivity.LOG.append(e.toString());
+				ConsoleActivity.log(e.toString());
 				notifyConnectionFailed();
 				return;
 			}
@@ -97,7 +97,7 @@ public class ArduinoComms extends Thread
 					inputStream = socket.getInputStream();
 					outputStream = socket.getOutputStream();
 				} catch (IOException e) {
-					ConsoleActivity.LOG.append(e.toString()+'\n');
+					ConsoleActivity.log(e.toString()+'\n');
 					retryCount++;
 				}
 			}while(retryCount < connectRetryCount && !socket.isConnected());
@@ -135,7 +135,7 @@ public class ArduinoComms extends Thread
 			inputStream = null;
 			outputStream = null;
 		} catch (IOException e) {
-			ConsoleActivity.LOG.append(e.toString());
+			ConsoleActivity.log(e.toString());
 		}
 	}
 
@@ -146,6 +146,10 @@ public class ArduinoComms extends Thread
 			return;
 		}
 		comms.add(comm);
+		if(socket != null && socket.isConnected())
+		{
+			comm.connected();//notify the listener that we are already connected.
+		}
 	}
 
 	public static void unregisterListener(IBluetoothComms comm)
@@ -162,7 +166,7 @@ public class ArduinoComms extends Thread
 				int temp = inputStream.read();
 				notifySetTemperature(temp);
 			} catch (IOException e) {
-				ConsoleActivity.LOG.append(e.toString());
+				ConsoleActivity.log(e.toString());
 			}
 		});
 	}
@@ -185,7 +189,7 @@ public class ArduinoComms extends Thread
 				float temp = bb.getFloat();
 				notifySetTemperature(temp);
 			} catch (IOException e) {
-				ConsoleActivity.LOG.append(e.toString());
+				ConsoleActivity.log(e.toString());
 			}
 		});
 	}
@@ -240,7 +244,7 @@ public class ArduinoComms extends Thread
 				}
 				notifySetValves(data);
 			} catch (IOException e) {
-				ConsoleActivity.LOG.append(e.toString());
+				ConsoleActivity.log(e.toString());
 			}
 		});
 	}
@@ -260,7 +264,7 @@ public class ArduinoComms extends Thread
 					}
 				}
 			} catch (IOException e) {
-				ConsoleActivity.LOG.append(e.toString());
+				ConsoleActivity.log(e.toString());
 			}
 		});
 	}
@@ -279,13 +283,13 @@ public class ArduinoComms extends Thread
 				outputStream.write(date.get(Calendar.MONTH));
 				outputStream.write(date.get((Calendar.YEAR)-2000));//arduino uses years from 0-99
 			} catch (IOException e) {
-				ConsoleActivity.LOG.append(e.toString());
+				ConsoleActivity.log(e.toString());
 			}
 		});
 
 	}
 
-	public static void getTime() throws IOException
+	public static void getTime()
 	{
 		TASK_LIST.add(()->
 		{
@@ -303,7 +307,7 @@ public class ArduinoComms extends Thread
 				date.set(Calendar.YEAR, inputStream.read());
 				notifySetTime(date);
 			} catch (IOException e) {
-				ConsoleActivity.LOG.append(e.toString());
+				ConsoleActivity.log(e.toString());
 			}
 		});
 	}

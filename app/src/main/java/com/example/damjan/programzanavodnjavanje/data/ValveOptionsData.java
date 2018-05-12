@@ -343,7 +343,7 @@ public class ValveOptionsData{
 		}
 
 		sb.delete(sb.length()- 2, sb.length());
-		
+
 		sb.append("\nSwitch: ");
 		sb.append(m_masterSwitch);
 		sb.append('\n');

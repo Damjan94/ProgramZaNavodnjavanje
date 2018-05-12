@@ -12,7 +12,10 @@ import com.example.damjan.programzanavodnjavanje.bluetooth.ArduinoComms;
 import com.example.damjan.programzanavodnjavanje.bluetooth.IBluetoothComms;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 
 public class ConsoleActivity extends AppCompatActivity implements IBluetoothComms
 {
@@ -50,7 +53,7 @@ public class ConsoleActivity extends AppCompatActivity implements IBluetoothComm
 		Button refresh = findViewById(R.id.consoleButton);
 		refresh.setOnClickListener(v->
 		{
-			handleCommand(sendCommand.getText().toString());
+			handleCommand(new String[] {sendCommand.getText().toString()});
 		});
 		refresh.setOnLongClickListener(v->
 		{
@@ -61,23 +64,38 @@ public class ConsoleActivity extends AppCompatActivity implements IBluetoothComm
 
 	}
 
-	private void handleCommand(String command)
+	private void handleCommand(String[] commands)
 	{
-		if(command.equals("getValves"))
+		if(commands[0].equals("valves read"))
 		{
 			ArduinoComms.getValves();
 		}
-		else if(command.equals("getTemp"))
+		else if(commands[0].equals("temp read"))
 		{
 			ArduinoComms.getTempFloat();
 		}
-		else if(command.equals("getTime"))
+		else if(commands[0].equals("time read"))
 		{
 			ArduinoComms.getTime();
 		}
+		else if(commands[0].equals("time send"))
+		{
+			final String PATTERN = "yyyy MM dd HH:mm";
+			Calendar cal = Calendar.getInstance();
+			if(commands.length > 1) {
+				SimpleDateFormat sdf = new SimpleDateFormat(PATTERN, Locale.ENGLISH);
+				try {
+					cal.setTime(sdf.parse(commands[1]));// all done
+				} catch (ParseException e) {
+					log("failed to parse date. The format should be ascii with pattern " + PATTERN + '\n' +
+							"got " + commands[1] + '\n');
+				}
+			}
+			ArduinoComms.sendTime(cal);
+		}
 		else
 		{
-			log("unknown command: \""+command+'"');
+			log("unknown command: \""+commands[0]+'"');
 		}
 	}
 

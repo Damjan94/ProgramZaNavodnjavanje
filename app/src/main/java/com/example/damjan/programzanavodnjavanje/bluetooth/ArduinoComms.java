@@ -269,7 +269,7 @@ public class ArduinoComms extends Thread
 		});
 	}
 
-	private static void sendTime(final Calendar date)
+	public static void sendTime(final Calendar date)
 	{
 		TASK_LIST.add(()->
 		{

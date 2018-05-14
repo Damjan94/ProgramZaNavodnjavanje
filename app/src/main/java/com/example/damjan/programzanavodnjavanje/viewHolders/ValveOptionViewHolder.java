@@ -12,8 +12,8 @@ import android.widget.TextView;
 
 import com.example.damjan.programzanavodnjavanje.BuildConfig;
 import com.example.damjan.programzanavodnjavanje.IComm;
-import com.example.damjan.programzanavodnjavanje.MainActivity;
 import com.example.damjan.programzanavodnjavanje.R;
+import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
 /**
@@ -107,7 +107,7 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 			{
 				AlertDialog.Builder alertDialog = new AlertDialog.Builder(m_activity);
 				String msg = m_activity.getResources().getString(R.string.confirm_valve_option_delete);
-				msg += " "+ValveOptionsData.getValveOptionDataCollection().get(getAdapterPosition()).getValveNumber();
+				msg += " "+ ValveGroup.groups.get(0).getValveOptionDataCollection().get(getAdapterPosition()).getValveNumber();
 				msg +=".";
 				alertDialog.setMessage(msg);
 				alertDialog.setPositiveButton(R.string.positive_response, new DialogInterface.OnClickListener()
@@ -129,7 +129,6 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
     //update UI skipping any views that already have the same value
     public void updateUI(ValveOptionsData data)
 	{
-		//TODO Sometimes update ui doesn't change the text, or it doesn't get called...
         String time = data.getHours()+":"+data.getMinutes();
         if(!(m_timeView.getText().toString().equals(time)))
 		{

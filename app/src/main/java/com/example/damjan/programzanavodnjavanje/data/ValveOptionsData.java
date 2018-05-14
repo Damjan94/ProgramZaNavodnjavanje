@@ -1,9 +1,5 @@
 package com.example.damjan.programzanavodnjavanje.data;
 
-import android.util.Log;
-import android.widget.Toast;
-
-import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
 import com.example.damjan.programzanavodnjavanje.MainActivity;
 import com.example.damjan.programzanavodnjavanje.R;
 
@@ -11,78 +7,31 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.regex.PatternSyntaxException;
 
-public class ValveOptionsData{
+public class ValveOptionsData implements CustomSerialization{
     
-    public static final String VALVE_NAME = "Name";
-    public static final String VALVE_NUMBER = "Number";
-    public static final String VALVE_PERCENT = "Percent";
-    public static final String VALVE_COUNTDOWN = "Countdown";
-    public static final String VALVE_MINUTE= "Minute";
-    public static final String VALVE_HOUR = "Hour";
-    public static final String VALVE_SWITCH = "Switch";
-    public static final String VALVE_DAYS_ON= "DaysOn";
+    private static final String VALVE_NAME = "Name";
+    private static final String VALVE_NUMBER = "Number";
+    private static final String VALVE_PERCENT = "Percent";
+    private static final String VALVE_COUNTDOWN = "Countdown";
+    private static final String VALVE_MINUTE= "Minute";
+    private static final String VALVE_HOUR = "Hour";
+    private static final String VALVE_SWITCH = "Switch";
+    private static final String VALVE_DAYS_ON= "DaysOn";
     
-    public static ArrayList<ValveOptionsData> getValveOptionDataCollection()
-    {
-        
-        return valveOptionDataCollection;
-    }
-    public static void setValveOptionDataCollection(ArrayList<ValveOptionsData> dataList)
-	{
-		synchronized (lock)
-		{
-			valveOptionDataCollection = dataList;
-		}
-	}
-    
-    public static ValveOptionsData getValveOptionData(int pos)
-    {
-		final ValveOptionsData data;
-        synchronized (lock)
-        {
-             data =  valveOptionDataCollection.get(pos);
-        }
-        return data;
-    }
-    
-    public static void addValveOptionData(ValveOptionsData data)
-    {
-        synchronized (lock)
-        {
-            valveOptionDataCollection.add(data);
-        }
-    }
-	
-	public static void removeValveOptionData(int pos)
-	{
-		synchronized (lock)
-		{
-			valveOptionDataCollection.remove(pos);
-		}
-	}
-    
-    private static ArrayList<ValveOptionsData> valveOptionDataCollection = new ArrayList<>();
-    private static final Object lock = new Object();
-    static
-	{
-        //temp code
-        for (int i = 0; i < 1; i++)
-        {
-            valveOptionDataCollection.add(new ValveOptionsData());
-        }
-    }
 
-    private static long m_staticId = 0;
+
+    private static long staticId = 0;
 	
 	public final static int VALVE_DATA_NETWORK_SIZE = 6;
-    
-    private long m_id;
+
+	private final static int DEFAULT_PERCENTAGE = 100;
+
+	//used by RecyclerView.Adapter.setHasStableIds(true)
+    private long m_id = staticId++;
 
     private String m_valveName;
     private int m_valveNumber;
@@ -90,72 +39,50 @@ public class ValveOptionsData{
     private int m_minute;
     private int m_timeCountdown;
 
-    public boolean isMasterSwitch() {
-        return m_masterSwitch;
-    }
-
-    public void setMasterSwitch(boolean masterSwitch) {
-        this.m_masterSwitch = masterSwitch;
-    }
-
     private boolean m_masterSwitch;
-    public int getPercentage() {
-        return m_percentage;
-    }
 
     private int m_percentage;
     private boolean[] m_repeatDays;
-	
-	public JSONObject toJson()
+
+	@Override
+	public JSONObject toJson() throws JSONException
 	{
 		JSONObject jsonOut = new JSONObject();
-		try {
-			jsonOut.put(VALVE_NAME, m_valveName);
-			jsonOut.put(VALVE_NUMBER, m_valveNumber);
-			jsonOut.put(VALVE_PERCENT, m_percentage);
-			jsonOut.put(VALVE_COUNTDOWN, m_timeCountdown);
-			jsonOut.put(VALVE_MINUTE, m_minute);
-			jsonOut.put(VALVE_HOUR, m_hour);
-			jsonOut.put(VALVE_SWITCH, m_masterSwitch);
-			
-			JSONArray daysOn = new JSONArray(m_repeatDays);
-			jsonOut.put(VALVE_DAYS_ON, daysOn);
-		} catch (JSONException e) {
-			throw new RuntimeException(e);
-		}
-		
-		
+		jsonOut.put(VALVE_NAME, m_valveName);
+		jsonOut.put(VALVE_NUMBER, m_valveNumber);
+		jsonOut.put(VALVE_PERCENT, m_percentage);
+		jsonOut.put(VALVE_COUNTDOWN, m_timeCountdown);
+		jsonOut.put(VALVE_MINUTE, m_minute);
+		jsonOut.put(VALVE_HOUR, m_hour);
+		jsonOut.put(VALVE_SWITCH, m_masterSwitch);
+
+		JSONArray daysOn = new JSONArray(m_repeatDays);
+		jsonOut.put(VALVE_DAYS_ON, daysOn);
 		return jsonOut;
 	}
-	public static ValveOptionsData fromJSON(JSONObject jsonIn)
+
+	@Override
+	final public void fromJSON(JSONObject jsonIn) throws JSONException
 	{
-		ValveOptionsData data;
-		try
+		JSONArray daysOn = jsonIn.getJSONArray(VALVE_DAYS_ON);
+		boolean[] days = new boolean[daysOn.length()];
+		for (int i = 0; i < days.length; i++)
 		{
-			JSONArray daysOn = jsonIn.getJSONArray(VALVE_DAYS_ON);
-			boolean[] days = new boolean[daysOn.length()];
-			for (int i = 0; i < days.length; i++)
-			{
-				days[i] = daysOn.getBoolean(i);
-			}
-			data = new ValveOptionsData(
-					jsonIn.getString(VALVE_NAME),
-					jsonIn.getInt(VALVE_NUMBER),
-					jsonIn.getInt(VALVE_PERCENT),
-					jsonIn.optInt(VALVE_HOUR),
-					jsonIn.getInt(VALVE_MINUTE),
-					jsonIn.getInt(VALVE_COUNTDOWN),
-					days,
-					jsonIn.getBoolean(VALVE_SWITCH)
-			);
-		} catch (JSONException e)
-		{
-			ConsoleActivity.log("Failed to load data from json\n" + jsonIn.toString());
-			data = new ValveOptionsData();
+			days[i] = daysOn.getBoolean(i);
 		}
-		return data;
+
+		this.m_valveName = jsonIn.getString(VALVE_NAME);
+		this.m_valveNumber = jsonIn.getInt(VALVE_NUMBER);
+		this.m_percentage = jsonIn.getInt(VALVE_PERCENT);
+		this.m_hour = jsonIn.optInt(VALVE_HOUR);
+		this.m_minute = jsonIn.getInt(VALVE_MINUTE);
+		this.m_timeCountdown = jsonIn.getInt(VALVE_COUNTDOWN);
+		this.m_repeatDays = days;
+		this.m_masterSwitch = jsonIn.getBoolean(VALVE_SWITCH);
 	}
-	public byte[] getBytesForArduino()
+
+	@Override
+	public byte[] toArduinoBytes()
 	{
 		byte[] arr = new byte[VALVE_DATA_NETWORK_SIZE];
 		arr[0] = (byte)m_valveNumber;
@@ -181,12 +108,47 @@ public class ValveOptionsData{
 		arr[5] = timeCountdown[1];
 		return arr;
 	}
+
+	@Override
+	final public void fromArduinoBytes(final byte[] bytes)
+	{
+		int valveNumber = bytes[0];
+		byte hour = bytes[1];
+		byte minute = bytes[2];
+
+		//arduino sends days on as a byte
+		//with most significant bit being saturday
+		//second to last(least) significant(8-7) bit being sunday
+		//the least significant bit is not used
+		byte daysOn = bytes[3];
+		boolean[] repeatDays = new boolean[7];
+		for(int k = 0; k< repeatDays.length; k++)
+		{
+			repeatDays[k] = ((daysOn >> k+1) & 0x1) == 1;
+		}
+
+		ByteBuffer bb = ByteBuffer.allocate(2);
+		bb.order(ByteOrder.BIG_ENDIAN);
+		bb.put(bytes[4]);
+		bb.put(bytes[5]);
+		short timeCountdown = bb.getShort(0);
+
+		this.m_valveNumber = valveNumber;
+		this.m_hour = hour;
+		this.m_minute =minute;
+		this.m_repeatDays = repeatDays;
+		this.m_timeCountdown = timeCountdown;
+		this.m_percentage = DEFAULT_PERCENTAGE;
+		this.m_masterSwitch = false;
+	}
+
+
     public ValveOptionsData()
 	{
 		this(
-				MainActivity.mainActivity.getResources().getString(R.string.valve) + m_staticId,
-				(int)m_staticId,
-				100,//default percentage
+				MainActivity.mainActivity.getResources().getString(R.string.valve) + staticId,
+				(int) staticId,
+				DEFAULT_PERCENTAGE,
 				0,
 				0,
 				0,
@@ -194,7 +156,6 @@ public class ValveOptionsData{
 				false
 				);
 	}
-
 
     public ValveOptionsData(String valveName, int valveNumber, int percentage, int hour, int minute, int timeCountdown, boolean[] repeatDays, boolean masterSwitch) {
         setValveName(valveName);
@@ -204,69 +165,83 @@ public class ValveOptionsData{
         setTime(hour, minute);
         setMasterSwitch(masterSwitch);
         setRepeatDay(repeatDays);
-
-        m_id = m_staticId;
-        m_staticId++;
     }
+
+	ValveOptionsData(JSONObject obj) throws JSONException
+	{
+		fromJSON(obj);
+	}
+
+	ValveOptionsData(byte[] bytes)
+	{
+		fromArduinoBytes(bytes);
+	}
+
+	public int getPercentage() {
+		return m_percentage;
+	}
+	public void setPercentage(int percentage)
+	{
+		this.m_percentage = Math.max(0, percentage);
+	}
 
     public void setValveName(String valveName) {
         this.m_valveName = valveName;
     }
+	public String getValveName() {
+		return m_valveName;
+	}
 
     public void setValveNumber(int valveNumber) {
         this.m_valveNumber = valveNumber;
     }
+	public int getValveNumber() {
+		return m_valveNumber;
+	}
 
     public void setTime(int hour, int minute)
     {
-        this.m_hour = hour; this.m_minute = minute;
+        this.m_hour = hour;
+        this.m_minute = minute;
     }
+	public int getMinutes(){ return m_minute; }
+	public int getHours(){ return m_hour; }
 
-    public void setPercentage(int percentage)
-	{
-        this.m_percentage = Math.max(0, percentage);
-    }
 
     public void setTimeCountdown(int timeCountdown)
 	{
         this.m_timeCountdown = timeCountdown;
     }
+	public int getTimeCountdown()
+	{
+		//guard from division by zero
+		if(m_timeCountdown == 0)
+		{
+			return m_timeCountdown;
+		}
+		return (int)((m_timeCountdown / 100.0) * m_percentage);
+	}
 
     public void setRepeatDay(boolean[] repeatDays) {
         if(repeatDays.length != 7)
             throw new PatternSyntaxException("Expected array of 7 booleans","got array of " + repeatDays.length+" booleans", -1);
         this.m_repeatDays = repeatDays;
     }
-
     public void setRepeatDay(boolean value, int pos)
     {
         m_repeatDays[pos] = value;
     }
-
-    public String getValveName() {
-        return m_valveName;
-    }
-
-    public int getValveNumber() {
-        return m_valveNumber;
-    }
-
-    public int getMinutes(){ return m_minute; }
-
-    public int getHours(){ return m_hour; }
-
-    public int getTimeCountdown()
-    {
-        if(m_timeCountdown == 0)
-        {
-            return m_timeCountdown;
-        }
-        return (int)((m_timeCountdown / 100.0) * m_percentage);
-    }
-
     public boolean[] getRepeatDays() {
         return m_repeatDays;
     }
+
+	public void setMasterSwitch(boolean masterSwitch) {
+		this.m_masterSwitch = masterSwitch;
+	}
+	public boolean isMasterSwitch() {
+		return m_masterSwitch;
+	}
+
 
     public long getID() {
         return m_id;

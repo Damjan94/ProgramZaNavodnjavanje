@@ -3,7 +3,6 @@ package com.example.damjan.programzanavodnjavanje;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -22,6 +21,7 @@ import android.widget.Toast;
 import com.example.damjan.programzanavodnjavanje.adapters.ValveOptionAdapter;
 import com.example.damjan.programzanavodnjavanje.bluetooth.ArduinoComms;
 import com.example.damjan.programzanavodnjavanje.bluetooth.IBluetoothComms;
+import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
 import org.json.JSONArray;
@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 
 	public final static int VERSION_NUMBER = 0;
 	public final static String VERSION_STRING = "Version";
-	private final static String ARRAY_OF_VALVES_STRING = "ArrayOfValves";
+	private final static String ARRAY_OF_VALVE_GROUPS_STRING = "ArrayOfValveGroups";
 	
 	private boolean m_isResumeExecuted = false;
 	private Thread m_loadFileThread = null;
@@ -125,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 		linearLayout.setOrientation(LinearLayoutManager.VERTICAL);
 		m_RecyclerView.setLayoutManager(linearLayout);
 
-		ValveOptionAdapter adapter = new ValveOptionAdapter(ValveOptionsData.getValveOptionDataCollection(), this);
+		ValveOptionAdapter adapter = new ValveOptionAdapter(ValveGroup.groups.get(0).getValveOptionDataCollection(), this);
 		m_RecyclerView.setAdapter(adapter);
 
 		DividerItemDecoration decoration = new DividerItemDecoration(this, linearLayout.getOrientation());
@@ -206,10 +206,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 			@Override
 			public void onClick(View v)
 			{
-				final ArrayList<ValveOptionsData> valveOptionDataCollection = ValveOptionsData.getValveOptionDataCollection();
-				ValveOptionsData[] arr = new ValveOptionsData[0];
-				arr = valveOptionDataCollection.toArray(arr);
-				ArduinoComms.sendValves(arr);
+				ArduinoComms.sendValves(ValveGroup.groups.get(0));
 				Toast.makeText(mainActivity, "Sending...", Toast.LENGTH_SHORT).show();
 			}
     	});
@@ -305,18 +302,15 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 	
 	private void writeDataToFile(FileOutputStream fileOutputStream) throws IOException
 	{
-		JSONArray arr = new JSONArray();
-		for(ValveOptionsData data : ValveOptionsData.getValveOptionDataCollection())
-		{
-			
-			arr.put(data.toJson());
-		}
-		
 		JSONObject object = new JSONObject();
+		JSONArray arr = new JSONArray();
 		try
 		{
+			JSONObject group0 = ValveGroup.groups.get(0).toJson();
+			arr.put(group0);
 			object.put(VERSION_STRING, VERSION_NUMBER);
-			object.put(ARRAY_OF_VALVES_STRING, arr);
+			object.put(ARRAY_OF_VALVE_GROUPS_STRING, arr);
+
 		} catch (JSONException e)
 		{
 			e.printStackTrace();
@@ -328,7 +322,6 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 	
 	private ArrayList<ValveOptionsData> readDataFromFile(FileInputStream fileInputStream) throws IOException
 	{
-		ArrayList<ValveOptionsData> data = new ArrayList<>();
 		int availableBytes = fileInputStream.available();
 		byte[] inStream;
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(availableBytes);
@@ -348,23 +341,23 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 			int version = obj.getInt(VERSION_STRING);
 			if(version != VERSION_NUMBER)
 			{
-				Toast.makeText(this, "Save file version missmatch!", Toast.LENGTH_SHORT).show();
+				Toast.makeText(this, "Save file version mismatch!", Toast.LENGTH_SHORT).show();
 			}
-			JSONArray valveObjects = obj.getJSONArray(ARRAY_OF_VALVES_STRING);
-			
-			for (int i = 0; i < valveObjects.length(); i++)
+			JSONArray valveObjectGroups = obj.getJSONArray(ARRAY_OF_VALVE_GROUPS_STRING);
+			ValveGroup.groups.clear();
+			for (int i = 0; i < valveObjectGroups.length(); i++)
 			{
-				data.add(ValveOptionsData.fromJSON(valveObjects.getJSONObject(i)));
+				ValveGroup.groups.add(new ValveGroup(valveObjectGroups.getJSONObject(i)));
 			}
 		} catch (JSONException e)
 		{
 			e.printStackTrace();
 		}
 		
-		return data;
+		return ValveGroup.groups.get(0).getValveOptionDataCollection();
 	}
 	
-	void notifyItemChanged(final int pos, final Job job, final ValveOptionsData data)
+	void notifyItemChanged(final int pos, final Job job)
 	{
 		android.os.Handler mHandler = getWindow().getDecorView().getHandler();
 		mHandler.post(() ->
@@ -394,8 +387,8 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 	@Override
 	public void addItem(ValveOptionsData item)
 	{
-		ValveOptionsData.addValveOptionData(item);
-		notifyItemChanged(ValveOptionsData.getValveOptionDataCollection().size()-1, Job.ADD_ITEM, null);
+		ValveGroup.groups.get(0).addValveOptionData(item);
+		notifyItemChanged(ValveGroup.groups.get(0).getValveOptionDataCollection().size()-1, Job.ADD_ITEM);
 	}
 	
 	@Override
@@ -404,8 +397,8 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 		if(viewHolderPosition == RecyclerView.NO_POSITION)
 			return;
 		
-		ValveOptionsData.removeValveOptionData(viewHolderPosition);
-		notifyItemChanged(viewHolderPosition, Job.REMOVE_ITEM, null);
+		ValveGroup.groups.get(0).removeValveOptionData(viewHolderPosition);
+		notifyItemChanged(viewHolderPosition, Job.REMOVE_ITEM);
 	}
 	
 	@Override
@@ -413,7 +406,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveOptionsData.getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
         if(data == null)
             return;
         
@@ -423,14 +416,14 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
             {
                 data.setTimeCountdown(minute);
                 data.setPercentage(100);
-                notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM, data);
+                notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
                 break;
             }
 
             default:
             {
                 data.setTime(hour, minute);
-				notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM, data);
+				notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
                 break;
             }
         }
@@ -441,11 +434,11 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveOptionsData.getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
         if(data == null)
             return;
         data.setValveNumber(num);
-		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM, data);
+		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
 
     @Override
@@ -453,23 +446,23 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveOptionsData.getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
         if(data == null)
             return;
         data.setValveName(name);
 	
-		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM, data);
+		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
 
     @Override
     public void setValvePercentage(int percentage, int viewHolderPosition) {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveOptionsData.getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
         if(data == null)
             return;
         data.setPercentage(percentage);
-		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM, data);
+		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
 
     }
 
@@ -477,24 +470,24 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     public void setValveDayOn(boolean[] days, int viewHolderPosition) {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveOptionsData.getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
         if(data == null)
             return;
         data.setRepeatDay(days);
 		
-		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM, data);
+		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
 
     @Override
     public void setValveDayOn(boolean value, int day, int viewHolderPosition) {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveOptionsData.getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
         if(data == null)
             return;
         data.setRepeatDay(value, day);
 	
-		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM, data);
+		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
 
     @Override
@@ -502,12 +495,12 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveOptionsData.getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
         if(data == null)
             return;
         data.setMasterSwitch(value);
 	
-		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM, data);
+		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
 	
 	@Override
@@ -519,7 +512,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 		}
 		MainActivity.this.runOnUiThread(() ->
 		{
-			ValveOptionsData.setValveOptionDataCollection(data);
+			ValveGroup.groups.get(0).setValveOptionDataCollection(data);
 			m_RecyclerView.swapAdapter(new ValveOptionAdapter(data, this), false);
 		});
 		

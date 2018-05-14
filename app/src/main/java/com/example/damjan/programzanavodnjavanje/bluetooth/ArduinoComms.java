@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothSocket;
 import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
 import com.example.damjan.programzanavodnjavanje.MainActivity;
 import com.example.damjan.programzanavodnjavanje.R;
+import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
 import java.io.IOException;
@@ -200,69 +201,30 @@ public class ArduinoComms extends Thread
 		{
 			try {
 				outputStream.write(RECEIVE_VALVE);
+				//how many valves are we going to get
 				int size = inputStream.read();
-				ValveOptionsData[] data = new ValveOptionsData[size];
-				for(int i = 0; i < size; i++)
-				{
-					byte[] valveFromArduino = new byte[ValveOptionsData.VALVE_DATA_NETWORK_SIZE];
-					for (int j = 0; j < valveFromArduino.length; j++)
-					{
-						valveFromArduino[j] = (byte) inputStream.read();
-					}
-
-					int valveNumber = valveFromArduino[0];
-					byte hour = valveFromArduino[1];
-					byte minute = valveFromArduino[2];
-
-					//arduino sends days on as a byte
-					//with most significant bit being saturday
-					//second to last(least) significant(8-7) bit being sunday
-					//the least significant bit is not used
-					byte daysOn = valveFromArduino[3];
-					boolean[] repeatDays = new boolean[7];
-					for(int k = 0; k< repeatDays.length; k++)
-					{
-						repeatDays[k] = ((daysOn >> k+1) & 0x1) == 1;
-					}
-
-					ByteBuffer bb = ByteBuffer.allocate(2);
-					bb.order(ByteOrder.BIG_ENDIAN);
-					bb.put(valveFromArduino[4]);
-					bb.put(valveFromArduino[5]);
-					short timeCountdown = bb.getShort(0);
-
-					data[i] = new ValveOptionsData(
-							MainActivity.mainActivity.getResources().getString(R.string.valve) + valveNumber,
-							valveNumber,
-							100,
-							hour,
-							minute,
-							timeCountdown,
-							repeatDays,
-							false
-					);
-				}
-				notifySetValves(data);
+				int bufferSize = size * ValveOptionsData.VALVE_DATA_NETWORK_SIZE;
+				byte[] bytes = new byte[bufferSize];
+				int readBytes = 0;
+				do {
+					readBytes += inputStream.read(bytes, readBytes, bytes.length-readBytes);
+				}while (readBytes == bufferSize);
+				ValveGroup.groups.get(0).fromArduinoBytes(bytes);
+				notifySetValves((ValveOptionsData[]) ValveGroup.groups.get(0).getValveOptionDataCollection().toArray());
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}
 		});
 	}
 
-	public static void sendValves(final ValveOptionsData[] valves)
+	public static void sendValves(final ValveGroup valves)
 	{
 		TASK_LIST.add(()->
 		{
 			try {
 				outputStream.write(SEND_VALVE);
-				outputStream.write((byte) valves.length);
-				for (ValveOptionsData data : valves) {
-					byte[] arr = data.getBytesForArduino();
-					for (byte anArr : arr)
-					{
-						outputStream.write(anArr);
-					}
-				}
+				outputStream.write((byte) valves.getValveOptionDataCollection().size());
+				outputStream.write(valves.toArduinoBytes());
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}

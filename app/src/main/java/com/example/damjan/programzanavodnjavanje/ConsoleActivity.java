@@ -87,11 +87,15 @@ public class ConsoleActivity extends AppCompatActivity implements IBluetoothComm
 				try {
 					cal.setTime(sdf.parse(commands[1]));// all done
 				} catch (ParseException e) {
-					log("failed to parse date. The format should be ascii with pattern " + PATTERN + '\n' +
+					log("failed to parse date. The format should be ascii, with pattern " + PATTERN + '\n' +
 							"got " + commands[1] + '\n');
 				}
 			}
 			ArduinoComms.sendTime(cal);
+		}
+		else if(commands[0].equals("hbridge read"))
+		{
+			ArduinoComms.getHBridgePin();
 		}
 		else
 		{

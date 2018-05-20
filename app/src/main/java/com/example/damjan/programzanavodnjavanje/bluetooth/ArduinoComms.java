@@ -4,8 +4,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 
 import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
-import com.example.damjan.programzanavodnjavanje.MainActivity;
-import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
@@ -46,6 +44,7 @@ public class ArduinoComms extends Thread
 
 	private final static byte SEND_TIME = 0x2a;
 	private final static byte RECEIVE_TIME = 0x1a;
+	private final static byte RECEIVE_HBRIDGE_PIN = 0x1d;
 
 	private static final BlockingQueue<Runnable> TASK_LIST = new LinkedBlockingQueue<>();
 
@@ -208,9 +207,9 @@ public class ArduinoComms extends Thread
 				int readBytes = 0;
 				do {
 					readBytes += inputStream.read(bytes, readBytes, bytes.length-readBytes);
-				}while (readBytes == bufferSize);
+				}while (readBytes != bufferSize);
 				ValveGroup.groups.get(0).fromArduinoBytes(bytes);
-				notifySetValves((ValveOptionsData[]) ValveGroup.groups.get(0).getValveOptionDataCollection().toArray());
+				notifySetValves(ValveGroup.groups.get(0).getValveOptionDataCollection().toArray(new ValveOptionsData[0]));
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}
@@ -225,6 +224,7 @@ public class ArduinoComms extends Thread
 				outputStream.write(SEND_VALVE);
 				outputStream.write((byte) valves.getValveOptionDataCollection().size());
 				outputStream.write(valves.toArduinoBytes());
+				outputStream.flush();
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}
@@ -259,7 +259,6 @@ public class ArduinoComms extends Thread
 				outputStream.write(RECEIVE_TIME);
 				Calendar date = new GregorianCalendar();
 				date.setFirstDayOfWeek(Calendar.SUNDAY);
-				outputStream.write(RECEIVE_TIME);
 				date.set(Calendar.SECOND, inputStream.read());
 				date.set(Calendar.MINUTE, inputStream.read());
 				date.set(Calendar.HOUR, inputStream.read());
@@ -268,6 +267,22 @@ public class ArduinoComms extends Thread
 				date.set(Calendar.MONTH, inputStream.read());
 				date.set(Calendar.YEAR, inputStream.read());
 				notifySetTime(date);
+			} catch (IOException e) {
+				ConsoleActivity.log(e.toString());
+			}
+		});
+	}
+
+	public static void getHBridgePin()
+	{
+		TASK_LIST.add(()->
+		{
+			try {
+				outputStream.write(RECEIVE_HBRIDGE_PIN);
+				int[] hbridgePin = new int[2];
+				hbridgePin[0] = inputStream.read();
+				hbridgePin[1] = inputStream.read();
+				ConsoleActivity.log("Hbridge: "+ hbridgePin[0] + ", " + hbridgePin[1]);
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}

@@ -84,9 +84,9 @@ public class ValveGroup implements CustomSerialization
 		int bufferSize = m_valveGroup.size() * ValveOptionsData.VALVE_DATA_NETWORK_SIZE;
 		byte[] bytes = new byte[bufferSize];
 
-		for(int i = 0; i < bufferSize; i++)
+		for(int i = 0; i < bufferSize; i += ValveOptionsData.VALVE_DATA_NETWORK_SIZE)
 		{
-			System.arraycopy(m_valveGroup.get(i/ValveOptionsData.VALVE_DATA_NETWORK_SIZE).toArduinoBytes(), 0,
+			System.arraycopy((m_valveGroup.get(i/ValveOptionsData.VALVE_DATA_NETWORK_SIZE).toArduinoBytes()), 0,
 					bytes, i, ValveOptionsData.VALVE_DATA_NETWORK_SIZE);
 		}
 

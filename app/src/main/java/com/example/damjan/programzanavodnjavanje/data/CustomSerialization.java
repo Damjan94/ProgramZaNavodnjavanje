@@ -3,6 +3,8 @@ package com.example.damjan.programzanavodnjavanje.data;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InvalidObjectException;
+
 public interface CustomSerialization
 {
 	JSONObject toJson() throws JSONException;
@@ -12,5 +14,5 @@ public interface CustomSerialization
 
 	byte[] toArduinoBytes();
 
-	void fromArduinoBytes(final byte[] bytes);
+	void fromArduinoBytes(final byte[] bytes) throws InvalidObjectException;
 }

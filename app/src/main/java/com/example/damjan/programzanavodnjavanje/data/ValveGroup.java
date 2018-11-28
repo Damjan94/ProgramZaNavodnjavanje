@@ -81,13 +81,13 @@ public class ValveGroup implements CustomSerialization
 	@Override
 	public byte[] toArduinoBytes()
 	{
-		int bufferSize = m_valveGroup.size() * ValveOptionsData.VALVE_DATA_NETWORK_SIZE;
+		int bufferSize = m_valveGroup.size() * ValveOptionsData.NETWORK_SIZE;
 		byte[] bytes = new byte[bufferSize];
 
-		for(int i = 0; i < bufferSize; i += ValveOptionsData.VALVE_DATA_NETWORK_SIZE)
+		for(int i = 0; i < bufferSize; i += ValveOptionsData.NETWORK_SIZE)
 		{
-			System.arraycopy((m_valveGroup.get(i/ValveOptionsData.VALVE_DATA_NETWORK_SIZE).toArduinoBytes()), 0,
-					bytes, i, ValveOptionsData.VALVE_DATA_NETWORK_SIZE);
+			System.arraycopy((m_valveGroup.get(i/ValveOptionsData.NETWORK_SIZE).toArduinoBytes()), 0,
+					bytes, i, ValveOptionsData.NETWORK_SIZE);
 		}
 
 		return bytes;
@@ -97,10 +97,10 @@ public class ValveGroup implements CustomSerialization
 	final public void fromArduinoBytes(byte[] bytes)
 	{
 		m_valveGroup.clear();
-		byte[] dest = new byte[ValveOptionsData.VALVE_DATA_NETWORK_SIZE];
-		for(int i = 0; i < bytes.length; i+=ValveOptionsData.VALVE_DATA_NETWORK_SIZE)
+		byte[] dest = new byte[ValveOptionsData.NETWORK_SIZE];
+		for(int i = 0; i < bytes.length; i+=ValveOptionsData.NETWORK_SIZE)
 		{
-			System.arraycopy(bytes, i, dest, 0, ValveOptionsData.VALVE_DATA_NETWORK_SIZE);
+			System.arraycopy(bytes, i, dest, 0, ValveOptionsData.NETWORK_SIZE);
 			m_valveGroup.add(new ValveOptionsData(dest));
 		}
 	}

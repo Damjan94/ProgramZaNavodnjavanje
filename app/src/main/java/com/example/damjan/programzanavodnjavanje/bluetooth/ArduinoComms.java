@@ -4,6 +4,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 
 import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
+import com.example.damjan.programzanavodnjavanje.data.MyCalendar;
+import com.example.damjan.programzanavodnjavanje.data.MyCrc32;
 import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
@@ -14,10 +16,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.zip.CRC32;
 
 
 public class ArduinoComms extends Thread
@@ -35,16 +37,6 @@ public class ArduinoComms extends Thread
 	}
 
 	private final static String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
-
-	private final static byte SEND_VALVE = 0x2c;
-	private final static byte RECEIVE_VALVE = 0x1c;
-
-	private final static byte RECEIVE_TEMP = 0x2b;
-	private final static byte RECEIVE_TEMP_FLOAT = 0x1b;
-
-	private final static byte SEND_TIME = 0x2a;
-	private final static byte RECEIVE_TIME = 0x1a;
-	private final static byte RECEIVE_HBRIDGE_PIN = 0x1d;
 
 	private static final BlockingQueue<Runnable> TASK_LIST = new LinkedBlockingQueue<>();
 
@@ -161,11 +153,24 @@ public class ArduinoComms extends Thread
 	{
 		TASK_LIST.add(()->
 		{
-			try {
-				outputStream.write(RECEIVE_TEMP);
-				int temp = inputStream.read();
+			try
+			{
+				Message msg = new Message(Message.Type.REQUEST, Message.Action.TEMPERATURE);
+				outputStream.write(msg.toArduinoBytes());
+
+				long receivedCRC32 = MyCrc32.convert(readBytes(4));//order matters! always read the crc first!!!
+				byte temp = (byte)inputStream.read();
+
+				MyCrc32 crc32 = new MyCrc32();
+				crc32.update(temp);
+				if(crc32.getValue() != receivedCRC32)
+				{
+					ConsoleActivity.log("getTemp crc mismatch. expected "+crc32.getValue()+" got "+receivedCRC32);
+				}
+
 				notifySetTemperature(temp);
-			} catch (IOException e) {
+			} catch (IOException e)
+			{
 				ConsoleActivity.log(e.toString());
 			}
 		});
@@ -176,13 +181,18 @@ public class ArduinoComms extends Thread
 		TASK_LIST.add(() ->
 		{
 			try {
-				outputStream.write(RECEIVE_TEMP_FLOAT);
-				byte[] temperature = new byte[4];
-				int bytesRead = 0;
+				Message msg = new Message(Message.Type.REQUEST, Message.Action.TEMPERATURE_FLOAT);
+				outputStream.write(msg.toArduinoBytes());
 
-				do {
-					bytesRead += inputStream.read(temperature, bytesRead, temperature.length - bytesRead);
-				} while (bytesRead != temperature.length);
+				long receivedCRC32 = MyCrc32.convert(readBytes(4));//order matters! always read the crc first!!!
+				byte[] temperature = readBytes(4);
+
+				CRC32 crc32 = new CRC32();
+				crc32.update(temperature);
+				if(crc32.getValue() != receivedCRC32)
+				{
+					ConsoleActivity.log("getTempFloat crc mismatch. expected "+crc32.getValue()+" got "+receivedCRC32);
+				}
 
 				ByteBuffer bb = ByteBuffer.wrap(temperature);
 				bb.order(ByteOrder.BIG_ENDIAN);
@@ -199,15 +209,16 @@ public class ArduinoComms extends Thread
 		TASK_LIST.add(()->
 		{
 			try {
-				outputStream.write(RECEIVE_VALVE);
+				Message msg = new Message(Message.Type.REQUEST, Message.Action.VALVE);
+				outputStream.write(msg.toArduinoBytes());
 				//how many valves are we going to get
-				int size = inputStream.read();
-				int bufferSize = size * ValveOptionsData.VALVE_DATA_NETWORK_SIZE;
-				byte[] bytes = new byte[bufferSize];
-				int readBytes = 0;
-				do {
-					readBytes += inputStream.read(bytes, readBytes, bytes.length-readBytes);
-				}while (readBytes != bufferSize);
+				Message msgCount = new Message(readBytes(Message.NETWORK_SIZE));
+
+				int bufferSize = msgCount.itemCount * ValveOptionsData.NETWORK_SIZE;
+				byte[] bytes = readBytes(bufferSize);
+				//TODO: make the following statement prettier
+				//TODO: this no longer works. make changes for the crc32
+				asdf
 				ValveGroup.groups.get(0).fromArduinoBytes(bytes);
 				notifySetValves(ValveGroup.groups.get(0).getValveOptionDataCollection().toArray(new ValveOptionsData[0]));
 			} catch (IOException e) {
@@ -220,10 +231,22 @@ public class ArduinoComms extends Thread
 	{
 		TASK_LIST.add(()->
 		{
-			try {
-				outputStream.write(SEND_VALVE);
-				outputStream.write((byte) valves.getValveOptionDataCollection().size());
-				outputStream.write(valves.toArduinoBytes());
+			try
+			{
+				Message msg = new Message(Message.Type.COMMAND, Message.Action.VALVE, (byte)valves.getValveOptionDataCollection().size());
+				outputStream.write(msg.toArduinoBytes());
+
+				for()
+				msg.fromArduinoBytes(readBytes(Message.NETWORK_SIZE));
+				if(msg.type == Message.Type.INFO)
+				{
+					if(msg.info == Message.Info.READY_TO_RECEIVE)
+					{
+
+					}
+				}
+				asdf
+
 				outputStream.flush();
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
@@ -231,19 +254,22 @@ public class ArduinoComms extends Thread
 		});
 	}
 
-	public static void sendTime(final Calendar date)
+	public static void sendTime(final MyCalendar date)
 	{
 		TASK_LIST.add(()->
 		{
-			try {
-				outputStream.write(SEND_TIME);
-				outputStream.write(date.get(Calendar.SECOND));
-				outputStream.write(date.get(Calendar.MINUTE));
-				outputStream.write(date.get(Calendar.HOUR));
-				outputStream.write(date.get(Calendar.DAY_OF_WEEK));
-				outputStream.write(date.get(Calendar.DAY_OF_MONTH));
-				outputStream.write(date.get(Calendar.MONTH));
-				outputStream.write(date.get((Calendar.YEAR)-2000));//arduino uses years from 0-99
+			try
+			{
+				Message msg = new Message(Message.Type.COMMAND, Message.Action.TIME, (byte)1);
+				byte[] dateArray = date.toArduinoBytes();
+
+				MyCrc32 crc32 = new MyCrc32();
+				crc32.update(dateArray);
+
+				outputStream.write(msg.toArduinoBytes());
+				outputStream.write(crc32.toArduinoBytes());
+				outputStream.write(dateArray);
+				outputStream.flush();
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}
@@ -256,16 +282,13 @@ public class ArduinoComms extends Thread
 		TASK_LIST.add(()->
 		{
 			try {
-				outputStream.write(RECEIVE_TIME);
-				Calendar date = new GregorianCalendar();
+
+				Message msg = new Message(Message.Type.REQUEST, Message.Action.TIME);
+				outputStream.write(msg.toArduinoBytes());
+
+				MyCalendar date = new MyCalendar();
 				date.setFirstDayOfWeek(Calendar.SUNDAY);
-				date.set(Calendar.SECOND, inputStream.read());
-				date.set(Calendar.MINUTE, inputStream.read());
-				date.set(Calendar.HOUR, inputStream.read());
-				date.set(Calendar.DAY_OF_WEEK, inputStream.read());
-				date.set(Calendar.DAY_OF_MONTH, inputStream.read());
-				date.set(Calendar.MONTH, inputStream.read());
-				date.set(Calendar.YEAR, inputStream.read());
+
 				notifySetTime(date);
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
@@ -278,10 +301,16 @@ public class ArduinoComms extends Thread
 		TASK_LIST.add(()->
 		{
 			try {
-				outputStream.write(RECEIVE_HBRIDGE_PIN);
-				int[] hbridgePin = new int[2];
-				hbridgePin[0] = inputStream.read();
-				hbridgePin[1] = inputStream.read();
+				Message msg = new Message(Message.Type.REQUEST, Message.Action.H_BRIDGE_PIN);
+				outputStream.write(msg.toArduinoBytes());
+				long receivedCRC32 = MyCrc32.convert(readBytes(4));
+				byte[] hbridgePin = readBytes(2);
+				CRC32 crc32 = new CRC32();
+				crc32.update(hbridgePin);
+				if(crc32.getValue() != receivedCRC32)
+				{
+					ConsoleActivity.log("getHBridgePin crc mismatch. expected "+crc32.getValue()+" got "+receivedCRC32);
+				}
 				ConsoleActivity.log("Hbridge: "+ hbridgePin[0] + ", " + hbridgePin[1]);
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
@@ -335,5 +364,16 @@ public class ArduinoComms extends Thread
 		{
 			comm.setValves(valves);
 		}
+	}
+
+	private static byte[] readBytes(int byteCount) throws IOException
+	{
+		byte[] bytes = new byte[byteCount];
+		int readBytes = 0;
+		do {
+			readBytes += inputStream.read(bytes, readBytes, bytes.length-readBytes);
+		}while (readBytes != byteCount);
+
+		return bytes;
 	}
 }

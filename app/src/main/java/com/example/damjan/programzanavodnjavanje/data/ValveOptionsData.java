@@ -11,8 +11,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.regex.PatternSyntaxException;
 
-public class ValveOptionsData implements CustomSerialization{
-    
+public class ValveOptionsData implements CustomSerialization
+{
+    //JSON serialization strings
     private static final String VALVE_NAME = "Name";
     private static final String VALVE_NUMBER = "Number";
     private static final String VALVE_PERCENT = "Percent";
@@ -22,27 +23,23 @@ public class ValveOptionsData implements CustomSerialization{
     private static final String VALVE_SWITCH = "Switch";
     private static final String VALVE_DAYS_ON= "DaysOn";
     
-
-
+    //static ID used for RecyclerView adapter
     private static long staticId = 0;
 	
-	public final static int VALVE_DATA_NETWORK_SIZE = 6;
-
-	private final static int DEFAULT_PERCENTAGE = 100;
+	public final static int NETWORK_SIZE = 6;
 
 	//used by RecyclerView.Adapter.setHasStableIds(true)
     private long m_id = staticId++;
 
     private String m_valveName;
-    private int m_valveNumber;
-    private int m_hour;
-    private int m_minute;
+    private short m_valveNumber;
+    private byte m_hour;
+    private byte m_minute;
     private int m_timeCountdown;
 
     private boolean m_masterSwitch;
 
-    private int m_percentage;
-    private boolean[] m_repeatDays;
+	private boolean[] m_repeatDays;
 
 	@Override
 	public JSONObject toJson() throws JSONException
@@ -50,7 +47,6 @@ public class ValveOptionsData implements CustomSerialization{
 		JSONObject jsonOut = new JSONObject();
 		jsonOut.put(VALVE_NAME, m_valveName);
 		jsonOut.put(VALVE_NUMBER, m_valveNumber);
-		jsonOut.put(VALVE_PERCENT, m_percentage);
 		jsonOut.put(VALVE_COUNTDOWN, m_timeCountdown);
 		jsonOut.put(VALVE_MINUTE, m_minute);
 		jsonOut.put(VALVE_HOUR, m_hour);
@@ -72,10 +68,9 @@ public class ValveOptionsData implements CustomSerialization{
 		}
 
 		this.m_valveName = jsonIn.getString(VALVE_NAME);
-		this.m_valveNumber = jsonIn.getInt(VALVE_NUMBER);
-		this.m_percentage = jsonIn.getInt(VALVE_PERCENT);
-		this.m_hour = jsonIn.optInt(VALVE_HOUR);
-		this.m_minute = jsonIn.getInt(VALVE_MINUTE);
+		this.m_valveNumber = (short)jsonIn.getInt(VALVE_NUMBER);
+		this.m_hour = (byte)jsonIn.getInt(VALVE_HOUR);
+		this.m_minute = (byte)jsonIn.getInt(VALVE_MINUTE);
 		this.m_timeCountdown = jsonIn.getInt(VALVE_COUNTDOWN);
 		this.m_repeatDays = days;
 		this.m_masterSwitch = jsonIn.getBoolean(VALVE_SWITCH);
@@ -84,10 +79,10 @@ public class ValveOptionsData implements CustomSerialization{
 	@Override
 	public byte[] toArduinoBytes()
 	{
-		byte[] arr = new byte[VALVE_DATA_NETWORK_SIZE];
+		byte[] arr = new byte[NETWORK_SIZE];
 		arr[0] = (byte)m_valveNumber;
-		arr[1] = (byte)m_hour;
-		arr[2] = (byte)m_minute;
+		arr[1] = m_hour;
+		arr[2] = m_minute;
 		
 		int daysOn = 0;//arduino doesn't use the first bit. it uses bits from 1 - 7 sun-sat
 
@@ -103,16 +98,20 @@ public class ValveOptionsData implements CustomSerialization{
 		ByteBuffer bb = ByteBuffer.allocate(4);
 		bb.order(ByteOrder.LITTLE_ENDIAN);
 		bb.putInt(m_timeCountdown);
-		byte[] timeCountdown = bb.array();
-		arr[4] = timeCountdown[0];
-		arr[5] = timeCountdown[1];
+		arr[4] = (byte) (m_timeCountdown >> 8);//is this ok? is int treated as short?!
+		arr[5] = (byte) m_timeCountdown;
+
+		//TODO: calculate the crc value, and place it in front of the byte array
+		m_masterSwitch = true;
+
 		return arr;
 	}
 
 	@Override
 	final public void fromArduinoBytes(final byte[] bytes)
 	{
-		int valveNumber = bytes[0];
+		//TODO: read the crc value from the byte array, and compare it to the calculated one.
+		byte valveNumber = bytes[0];
 		byte hour = bytes[1];
 		byte minute = bytes[2];
 
@@ -126,19 +125,13 @@ public class ValveOptionsData implements CustomSerialization{
 		{
 			repeatDays[k] = ((daysOn >> k+1) & 0x1) == 1;
 		}
-
-		ByteBuffer bb = ByteBuffer.allocate(2);
-		bb.order(ByteOrder.BIG_ENDIAN);
-		bb.put(bytes[4]);
-		bb.put(bytes[5]);
-		short timeCountdown = bb.getShort(0);
-
+		int timeCountdown = (((bytes[4] & 0xFF) << 8) | (bytes[5] & 0xFF));
+		//TODO: sanitize the above values
 		this.m_valveNumber = valveNumber;
 		this.m_hour = hour;
 		this.m_minute =minute;
 		this.m_repeatDays = repeatDays;
 		this.m_timeCountdown = timeCountdown;
-		this.m_percentage = DEFAULT_PERCENTAGE;
 		this.m_masterSwitch = false;
 	}
 
@@ -147,20 +140,18 @@ public class ValveOptionsData implements CustomSerialization{
 	{
 		this(
 				MainActivity.mainActivity.getResources().getString(R.string.valve) + staticId,
-				(int) staticId,
-				DEFAULT_PERCENTAGE,
-				0,
-				0,
+				(byte)staticId,
+				(byte)0,
+				(byte)0,
 				0,
 				new boolean[]{false, false, false, false, false, false, false},
 				false
 				);
 	}
 
-    public ValveOptionsData(String valveName, int valveNumber, int percentage, int hour, int minute, int timeCountdown, boolean[] repeatDays, boolean masterSwitch) {
+    public ValveOptionsData(String valveName, byte valveNumber, byte hour, byte minute, int timeCountdown, boolean[] repeatDays, boolean masterSwitch) {
         setValveName(valveName);
         setValveNumber(valveNumber);
-        setPercentage(percentage);
         setTimeCountdown(timeCountdown);
         setTime(hour, minute);
         setMasterSwitch(masterSwitch);
@@ -177,14 +168,6 @@ public class ValveOptionsData implements CustomSerialization{
 		fromArduinoBytes(bytes);
 	}
 
-	public int getPercentage() {
-		return m_percentage;
-	}
-	public void setPercentage(int percentage)
-	{
-		this.m_percentage = Math.max(0, percentage);
-	}
-
     public void setValveName(String valveName) {
         this.m_valveName = valveName;
     }
@@ -192,14 +175,14 @@ public class ValveOptionsData implements CustomSerialization{
 		return m_valveName;
 	}
 
-    public void setValveNumber(int valveNumber) {
+    public void setValveNumber(byte valveNumber) {
         this.m_valveNumber = valveNumber;
     }
 	public int getValveNumber() {
 		return m_valveNumber;
 	}
 
-    public void setTime(int hour, int minute)
+    public void setTime(byte hour, byte minute)
     {
         this.m_hour = hour;
         this.m_minute = minute;
@@ -212,15 +195,7 @@ public class ValveOptionsData implements CustomSerialization{
 	{
         this.m_timeCountdown = timeCountdown;
     }
-	public int getTimeCountdown()
-	{
-		//guard from division by zero
-		if(m_timeCountdown == 0)
-		{
-			return m_timeCountdown;
-		}
-		return (int)((m_timeCountdown / 100.0) * m_percentage);
-	}
+	public int getTimeCountdown() { return m_timeCountdown; }
 
     public void setRepeatDay(boolean[] repeatDays) {
         if(repeatDays.length != 7)
@@ -259,10 +234,6 @@ public class ValveOptionsData implements CustomSerialization{
 
 		sb.append("Valve Number: ");
 		sb.append(m_valveNumber);
-		sb.append('\n');
-
-		sb.append("Percentage: ");
-		sb.append(m_percentage);
 		sb.append('\n');
 
 		sb.append("Turn on hour: ");

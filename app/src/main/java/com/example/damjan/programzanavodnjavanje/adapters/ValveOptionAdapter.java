@@ -2,17 +2,15 @@ package com.example.damjan.programzanavodnjavanje.adapters;
 
 import android.app.Activity;
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.SeekBar;
 
-import com.example.damjan.programzanavodnjavanje.IComm;
 import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 import com.example.damjan.programzanavodnjavanje.listeners.ValveOptionsViewOnClick;
-import com.example.damjan.programzanavodnjavanje.listeners.ValveOptionsViewOnSeekChange;
 import com.example.damjan.programzanavodnjavanje.viewHolders.ValveOptionViewHolder;
 
 import java.util.ArrayList;
@@ -28,29 +26,26 @@ public class ValveOptionAdapter extends RecyclerView.Adapter<ValveOptionViewHold
         setHasStableIds(true);
     }
 
+    @NonNull
     @Override
-    public ValveOptionViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ValveOptionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         Context context = parent.getContext();
         LayoutInflater inflater = LayoutInflater.from(context);
         View valveOptionsView = inflater.inflate(R.layout.fragment_valve_option, parent, false);
-	
-		ValveOptionViewHolder holder = new ValveOptionViewHolder(valveOptionsView, m_activity);
-	
-		return holder;
+
+        return new ValveOptionViewHolder(valveOptionsView, m_activity);
     }
 
     @Override
-    public void onBindViewHolder(ValveOptionViewHolder holder,  int position)
+    public void onBindViewHolder(@NonNull ValveOptionViewHolder holder, int position)
 	{
 		ValveOptionsViewOnClick clickListener = new ValveOptionsViewOnClick(holder, m_activity);
-		holder.getSeekPercent().setOnSeekBarChangeListener(new ValveOptionsViewOnSeekChange(m_activity, holder));
 		
 		for(int i = 0; i < holder.getDayCheck().length; i++)
 		{
 			holder.getDayCheck()[i].setOnClickListener(clickListener);
 		}
 		holder.getMasterSwitch().setOnClickListener(clickListener);
-		holder.getNumPercent().setOnClickListener(clickListener);
 		holder.getTimeView().setOnClickListener(clickListener);
 		holder.getTimeCountdown().setOnClickListener(clickListener);
 		holder.getValveName().setOnClickListener(clickListener);

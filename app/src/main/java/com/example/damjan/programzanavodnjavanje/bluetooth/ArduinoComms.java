@@ -157,8 +157,10 @@ public class ArduinoComms extends Thread
 			{
 				Message msg = new Message(Message.Type.REQUEST, Message.Action.TEMPERATURE);
 				outputStream.write(msg.toArduinoBytes());
+				outputStream.flush();
 
-				long receivedCRC32 = MyCrc32.convert(readBytes(4));//order matters! always read the crc first!!!
+
+				long receivedCRC32 = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
 				byte temp = (byte)inputStream.read();
 
 				MyCrc32 crc32 = new MyCrc32();
@@ -183,9 +185,10 @@ public class ArduinoComms extends Thread
 			try {
 				Message msg = new Message(Message.Type.REQUEST, Message.Action.TEMPERATURE_FLOAT);
 				outputStream.write(msg.toArduinoBytes());
+				outputStream.flush();
 
-				long receivedCRC32 = MyCrc32.convert(readBytes(4));//order matters! always read the crc first!!!
-				byte[] temperature = readBytes(4);
+				long receivedCRC32 = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
+				byte[] temperature = readBytes(4);//float is 4 bytes
 
 				CRC32 crc32 = new CRC32();
 				crc32.update(temperature);
@@ -211,16 +214,20 @@ public class ArduinoComms extends Thread
 			try {
 				Message msg = new Message(Message.Type.REQUEST, Message.Action.VALVE);
 				outputStream.write(msg.toArduinoBytes());
+				outputStream.flush();
 				//how many valves are we going to get
-				Message msgCount = new Message(readBytes(Message.NETWORK_SIZE));
+				long messageCrc = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
+				Message msgCount = new Message(readBytes(Message.NETWORK_SIZE), messageCrc);
 
-				int bufferSize = msgCount.itemCount * ValveOptionsData.NETWORK_SIZE;
-				byte[] bytes = readBytes(bufferSize);
-				//TODO: make the following statement prettier
-				//TODO: this no longer works. make changes for the crc32
-				asdf
-				ValveGroup.groups.get(0).fromArduinoBytes(bytes);
-				notifySetValves(ValveGroup.groups.get(0).getValveOptionDataCollection().toArray(new ValveOptionsData[0]));
+				ValveGroup arduinoValves = new ValveGroup();
+
+				for(int i = 0; i < msgCount.itemCount; ++i)
+				{
+					long valveCrc = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
+					arduinoValves.addValveOptionData(new ValveOptionsData(readBytes(ValveOptionsData.NETWORK_SIZE), valveCrc));
+				}
+
+				notifySetValves(arduinoValves.getValveOptionDataCollection().toArray(new ValveOptionsData[0]));
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}
@@ -233,21 +240,24 @@ public class ArduinoComms extends Thread
 		{
 			try
 			{
-				Message msg = new Message(Message.Type.COMMAND, Message.Action.VALVE, (byte)valves.getValveOptionDataCollection().size());
+
+				Message msg = new Message(Message.Type.COMMAND, Message.Action.VALVE, (byte)valves.getValveOptionDataCollection().size());//TODO: casting to byte is dangerous if the value is > 255
 				outputStream.write(msg.toArduinoBytes());
-
-				for()
-				msg.fromArduinoBytes(readBytes(Message.NETWORK_SIZE));
-				if(msg.type == Message.Type.INFO)
-				{
-					if(msg.info == Message.Info.READY_TO_RECEIVE)
-					{
-
-					}
-				}
-				asdf
-
 				outputStream.flush();
+
+				for(ValveOptionsData data : valves.getValveOptionDataCollection())
+				{
+					long messageCrc = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
+					msg.fromArduinoBytes(readBytes(Message.NETWORK_SIZE), messageCrc);
+
+					if (msg.type != Message.Type.INFO || msg.info != Message.Info.READY_TO_RECEIVE)
+					{
+						//TODO some error occurred, handle it
+						break;// or continue;?
+					}
+					outputStream.write(data.toArduinoBytes());
+					outputStream.flush();
+				}
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}
@@ -261,15 +271,11 @@ public class ArduinoComms extends Thread
 			try
 			{
 				Message msg = new Message(Message.Type.COMMAND, Message.Action.TIME, (byte)1);
-				byte[] dateArray = date.toArduinoBytes();
-
-				MyCrc32 crc32 = new MyCrc32();
-				crc32.update(dateArray);
 
 				outputStream.write(msg.toArduinoBytes());
-				outputStream.write(crc32.toArduinoBytes());
-				outputStream.write(dateArray);
+				outputStream.write(date.toArduinoBytes());
 				outputStream.flush();
+
 			} catch (IOException e) {
 				ConsoleActivity.log(e.toString());
 			}
@@ -284,10 +290,15 @@ public class ArduinoComms extends Thread
 			try {
 
 				Message msg = new Message(Message.Type.REQUEST, Message.Action.TIME);
+
 				outputStream.write(msg.toArduinoBytes());
+				outputStream.flush();
 
 				MyCalendar date = new MyCalendar();
 				date.setFirstDayOfWeek(Calendar.SUNDAY);
+
+				long dateCrc = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
+				date.fromArduinoBytes(readBytes(MyCalendar.NETWORK_SIZE), dateCrc);
 
 				notifySetTime(date);
 			} catch (IOException e) {
@@ -303,7 +314,9 @@ public class ArduinoComms extends Thread
 			try {
 				Message msg = new Message(Message.Type.REQUEST, Message.Action.H_BRIDGE_PIN);
 				outputStream.write(msg.toArduinoBytes());
-				long receivedCRC32 = MyCrc32.convert(readBytes(4));
+				outputStream.flush();
+
+				long receivedCRC32 = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
 				byte[] hbridgePin = readBytes(2);
 				CRC32 crc32 = new CRC32();
 				crc32.update(hbridgePin);
@@ -362,7 +375,7 @@ public class ArduinoComms extends Thread
 	{
 		for(IBluetoothComms comm : comms)
 		{
-			comm.setValves(valves);
+			comm.setValves(valves);//TODO:  should we modify the main Valves Array?
 		}
 	}
 
@@ -372,7 +385,7 @@ public class ArduinoComms extends Thread
 		int readBytes = 0;
 		do {
 			readBytes += inputStream.read(bytes, readBytes, bytes.length-readBytes);
-		}while (readBytes != byteCount);
+		}while (!(readBytes >= byteCount));
 
 		return bytes;
 	}

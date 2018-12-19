@@ -14,5 +14,5 @@ public interface CustomSerialization
 
 	byte[] toArduinoBytes();
 
-	void fromArduinoBytes(final byte[] bytes) throws InvalidObjectException;
+	void fromArduinoBytes(final byte[] bytes, long crc32) throws InvalidObjectException;
 }

@@ -153,7 +153,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 		android.os.Handler mHandler = getWindow().getDecorView().getHandler();
 		mHandler.post(() ->
 		{
-			syncBluetooth.setEnabled(true);
+			syncBluetooth.setEnabled(false);
 			Toast.makeText(this, "Failed to connect", Toast.LENGTH_SHORT).show();
 		});
 	}
@@ -402,7 +402,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
 	}
 	
 	@Override
-    public void setTime(int hour, int minute, int viewHolderPosition)
+    public void setTime(byte hour, byte minute, int viewHolderPosition)
     {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
@@ -415,7 +415,6 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
             case -1 :
             {
                 data.setTimeCountdown(minute);
-                data.setPercentage(100);
                 notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
                 break;
             }
@@ -430,7 +429,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     }
 
     @Override
-    public void setValveNumber(int num, int viewHolderPosition)
+    public void setValveNumber(byte num, int viewHolderPosition)
     {
         if(viewHolderPosition == RecyclerView.NO_POSITION)
             return;
@@ -452,18 +451,6 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
         data.setValveName(name);
 	
 		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
-    }
-
-    @Override
-    public void setValvePercentage(int percentage, int viewHolderPosition) {
-        if(viewHolderPosition == RecyclerView.NO_POSITION)
-            return;
-        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
-        if(data == null)
-            return;
-        data.setPercentage(percentage);
-		notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
-
     }
 
     @Override

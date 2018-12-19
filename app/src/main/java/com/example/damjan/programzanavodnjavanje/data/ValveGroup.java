@@ -9,14 +9,20 @@ import java.util.ArrayList;
 public class ValveGroup implements CustomSerialization
 {
 
+
+
 	public static ArrayList<ValveGroup> groups = new ArrayList<>();
 	static
 	{
 		groups.add(new ValveGroup());
 	}
-	private ArrayList<ValveOptionsData> m_valveGroup = new ArrayList<>();
+	private ArrayList<ValveOptionsData> m_valveOptionDataList = new ArrayList<>();
+
 	private String m_groupName = "Group0";
+	private int m_percentage = 100;
+
 	private static final String GROUP_NAME = "GroupName";
+	private static final String PERCENT = "Percent";
 
 	public ValveGroup()
 	{
@@ -30,26 +36,26 @@ public class ValveGroup implements CustomSerialization
 
 	public ArrayList<ValveOptionsData> getValveOptionDataCollection()
 	{
-		return m_valveGroup;
+		return m_valveOptionDataList;
 	}
 	public void setValveOptionDataCollection(ArrayList<ValveOptionsData> dataList)
 	{
-		m_valveGroup = dataList;
+		m_valveOptionDataList = dataList;
 	}
 
 	public ValveOptionsData getValveOptionData(int pos)
 	{
-		return m_valveGroup.get(pos);
+		return m_valveOptionDataList.get(pos);
 	}
 
 	public void addValveOptionData(ValveOptionsData data)
 	{
-		m_valveGroup.add(data);
+		m_valveOptionDataList.add(data);
 	}
 
 	public void removeValveOptionData(int pos)
 	{
-		m_valveGroup.remove(pos);
+		m_valveOptionDataList.remove(pos);
 	}
 
 	@Override
@@ -58,7 +64,7 @@ public class ValveGroup implements CustomSerialization
 		JSONObject obj = new JSONObject();
 		obj.put(GROUP_NAME, m_groupName);
 		JSONArray arr = new JSONArray();
-		for(ValveOptionsData data : m_valveGroup)
+		for(ValveOptionsData data : m_valveOptionDataList)
 		{
 			arr.put(data.toJson());
 		}
@@ -70,23 +76,23 @@ public class ValveGroup implements CustomSerialization
 	final public void fromJSON(JSONObject jsonIn) throws JSONException
 	{
 		m_groupName = (String)jsonIn.get(GROUP_NAME);
-		m_valveGroup.clear();
+		m_valveOptionDataList.clear();
 		JSONArray arr = jsonIn.getJSONArray(m_groupName);
 		for(int i = 0; i < arr.length(); i++)
 		{
-			m_valveGroup.add(new ValveOptionsData((JSONObject) arr.get(i)));
+			m_valveOptionDataList.add(new ValveOptionsData((JSONObject) arr.get(i)));
 		}
 	}
 
 	@Override
 	public byte[] toArduinoBytes()
 	{
-		int bufferSize = m_valveGroup.size() * ValveOptionsData.NETWORK_SIZE;
+		int bufferSize = m_valveOptionDataList.size() * ValveOptionsData.NETWORK_SIZE;
 		byte[] bytes = new byte[bufferSize];
 
 		for(int i = 0; i < bufferSize; i += ValveOptionsData.NETWORK_SIZE)
 		{
-			System.arraycopy((m_valveGroup.get(i/ValveOptionsData.NETWORK_SIZE).toArduinoBytes()), 0,
+			System.arraycopy((m_valveOptionDataList.get(i/ValveOptionsData.NETWORK_SIZE).toArduinoBytes()), 0,
 					bytes, i, ValveOptionsData.NETWORK_SIZE);
 		}
 
@@ -94,14 +100,8 @@ public class ValveGroup implements CustomSerialization
 	}
 
 	@Override
-	final public void fromArduinoBytes(byte[] bytes)
+	final public void fromArduinoBytes(byte[] bytes, long crc32)
 	{
-		m_valveGroup.clear();
-		byte[] dest = new byte[ValveOptionsData.NETWORK_SIZE];
-		for(int i = 0; i < bytes.length; i+=ValveOptionsData.NETWORK_SIZE)
-		{
-			System.arraycopy(bytes, i, dest, 0, ValveOptionsData.NETWORK_SIZE);
-			m_valveGroup.add(new ValveOptionsData(dest));
-		}
+		throw new UnsupportedOperationException();
 	}
 }

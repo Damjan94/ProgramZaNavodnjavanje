@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import com.example.damjan.programzanavodnjavanje.bluetooth.ArduinoComms;
 import com.example.damjan.programzanavodnjavanje.bluetooth.IBluetoothComms;
+import com.example.damjan.programzanavodnjavanje.data.MyCalendar;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
 import java.text.ParseException;
@@ -81,7 +82,8 @@ public class ConsoleActivity extends AppCompatActivity implements IBluetoothComm
 		else if(commands[0].equals("time send"))
 		{
 			final String PATTERN = "yyyy MM dd HH:mm";
-			Calendar cal = Calendar.getInstance();
+			MyCalendar cal = new MyCalendar();
+			cal.setFirstDayOfWeek(Calendar.SUNDAY);
 			if(commands.length > 1) {
 				SimpleDateFormat sdf = new SimpleDateFormat(PATTERN, Locale.ENGLISH);
 				try {

@@ -225,22 +225,6 @@
         android:paddingEnd="10dp"
         android:paddingStart="10dp">
 
-        <SeekBar
-            android:id="@+id/seekBarPercent"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_weight="2"
-            android:max="150"
-            android:progress="0" />
-
-        <TextView
-            android:id="@+id/editTextNumberPercent"
-            android:layout_width="15dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textSize="22sp" />
-
         <Switch
             android:id="@+id/switchMaster"
             android:layout_width="wrap_content"

@@ -58,7 +58,7 @@ public final class Dialogs {
         }
 
         public void onTimeSet(android.widget.TimePicker view, int hourOfDay, int minute) {
-            m_comm.setTime(hourOfDay, minute, m_pos);
+            m_comm.setTime((byte)hourOfDay, (byte)minute, m_pos);
         }
     }
 
@@ -91,7 +91,7 @@ public final class Dialogs {
                                 return;
                             }
                             int minutes = Integer.parseInt(m_minuteText.getText().toString());
-                            m_comm.setTime(-1, minutes, m_pos);
+                            m_comm.setTime((byte)-1, (byte)minutes, m_pos);
                             //Dismiss once everything is OK.
                             dialog.dismiss();
                         }
@@ -144,13 +144,13 @@ public final class Dialogs {
                             {
                                 case FUNCTION_UPDATE_NUMBER:
                                 {
-                                    m_comm.setValveNumber(number, m_pos);
+                                    m_comm.setValveNumber((byte)number, m_pos);
                                     break;
                                 }
 
                                 case FUNCTION_UPDATE_PERCENTAGE:
                                 {
-                                    m_comm.setValvePercentage(number, m_pos);
+                                    //m_comm.setValvePercentage(number, m_pos);
                                     break;
                                 }
                             }

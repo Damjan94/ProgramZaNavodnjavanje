@@ -1,6 +1,7 @@
 package com.example.damjan.programzanavodnjavanje.bluetooth;
 
 import com.example.damjan.programzanavodnjavanje.data.CustomSerialization;
+import com.example.damjan.programzanavodnjavanje.data.MyCrc32;
 
 import org.json.JSONObject;
 
@@ -21,9 +22,9 @@ public class Message implements CustomSerialization
 		this(Type.NONE, Action.NONE, Info.NONE, (byte)0);
 	}
 
-	public Message(byte[] arduinoBytes) throws InvalidObjectException
+	public Message(byte[] arduinoBytes, long crc32) throws InvalidObjectException
 	{
-		fromArduinoBytes(arduinoBytes);
+		fromArduinoBytes(arduinoBytes, crc32);
 	}
 
 	Message(Type type, Action action, Info info, byte itemCount)
@@ -69,11 +70,12 @@ public class Message implements CustomSerialization
 		bytes[1]	= action.toArduinoBytes()[0];
 		bytes[2]	= info.toArduinoBytes()[0];
 		bytes[3]	= itemCount;
-		return bytes;
+
+		return MyCrc32.calculateCrcAndCombine(bytes);
 	}
 
 	@Override
-	public void fromArduinoBytes(byte[] bytes) throws InvalidObjectException
+	public void fromArduinoBytes(byte[] bytes, long crc32) throws InvalidObjectException
 	{
 			/*	TODO: this is dangerous! one could mistakenly say
 				action = Action.getAction(bytes[0]) instead of bytes[1]
@@ -137,7 +139,7 @@ public class Message implements CustomSerialization
 		}
 
 		@Override
-		public void fromArduinoBytes(byte[] bytes)
+		public void fromArduinoBytes(byte[] bytes, long crc32)
 		{
 			throw new UnsupportedOperationException();
 		}
@@ -211,7 +213,7 @@ public class Message implements CustomSerialization
 		}
 
 		@Override
-		public void fromArduinoBytes(byte[] type)
+		public void fromArduinoBytes(byte[] type, long crc32)
 		{
 			throw new UnsupportedOperationException();
 		}
@@ -275,7 +277,7 @@ public class Message implements CustomSerialization
 		}
 
 		@Override
-		public void fromArduinoBytes(byte[] bytes)
+		public void fromArduinoBytes(byte[] bytes, long crc32)
 		{
 			throw new UnsupportedOperationException();
 		}

@@ -9,10 +9,9 @@ import java.util.ArrayList;
  */
 
 public interface IComm {
-    void setTime(int hour, int minute, int viewHolderPosition);
-    void setValveNumber(int num, int viewHolderPosition);
+    void setTime(byte hour, byte minute, int viewHolderPosition);
+    void setValveNumber(byte num, int viewHolderPosition);
     void setValveName(String name, int viewHolderPosition);
-    void setValvePercentage(int percentage, int viewHolderPosition);
     void setValveDayOn(boolean[] days, int viewHolderPosition);
     void setValveDayOn(boolean value, int day, int viewHolderPosition);
     void setMasterSwitch(boolean value, int viewHolderPosition);

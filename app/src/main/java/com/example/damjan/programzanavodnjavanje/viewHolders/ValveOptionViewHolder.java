@@ -26,8 +26,6 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 	private TextView m_timeCountdown;
 	private TextView m_valveName;
 	private TextView m_valveNumber;
-	private TextView m_numPercent;
-	private SeekBar m_seekPercent;
 	
 	private Switch m_masterSwitch;
 	private CheckBox[] m_dayCheck;
@@ -54,16 +52,6 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 		return m_valveNumber;
 	}
 	
-	public TextView getNumPercent()
-	{
-		return m_numPercent;
-	}
-	
-	public SeekBar getSeekPercent()
-	{
-		return m_seekPercent;
-	}
-	
 	public Switch getMasterSwitch()
 	{
 		return m_masterSwitch;
@@ -84,8 +72,6 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 		m_timeCountdown = itemView.findViewById(R.id.textViewTimeCountdown);
 		m_valveName = itemView.findViewById(R.id.textViewValveName);
 		m_valveNumber = itemView.findViewById(R.id.textViewValveNumber);
-		m_numPercent = itemView.findViewById(R.id.editTextNumberPercent);
-		m_seekPercent = itemView.findViewById(R.id.seekBarPercent);
 		m_dayCheck = new CheckBox[]
 				{
 						itemView.findViewById(R.id.checkBoxSun),
@@ -156,7 +142,7 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 		int valveNumber;
 		try
 		{
-			valveNumber = Integer.parseInt(m_numPercent.getText().toString());
+			valveNumber = Integer.parseInt(m_valveNumber.getText().toString());
 		}catch(NumberFormatException ex)
 		{
 			valveNumber = -1;
@@ -165,25 +151,7 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 		{
 			this.m_valveNumber.setText(String.valueOf(data.getValveNumber()));
 		}
-		
-		int numPercent;
-        try
-		{
-			numPercent = Integer.parseInt(this.m_numPercent.getText().toString());
-		}catch(NumberFormatException ex)
-		{
-			numPercent = -1;
-		}
-		
-		if ( numPercent != data.getPercentage())
-		{
-			this.m_numPercent.setText(String.valueOf(data.getPercentage()));
-		}
-		
-        if(m_seekPercent.getProgress() != data.getPercentage())
-		{
-			m_seekPercent.setProgress(data.getPercentage());
-		}
+
 		m_masterSwitch.setChecked(data.isMasterSwitch());
         boolean[] days = data.getRepeatDays();
         if( BuildConfig.DEBUG &&(days.length != m_dayCheck.length))

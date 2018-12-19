@@ -7,16 +7,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InvalidObjectException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.regex.PatternSyntaxException;
+import java.util.zip.CRC32;
 
 public class ValveOptionsData implements CustomSerialization
 {
     //JSON serialization strings
     private static final String VALVE_NAME = "Name";
     private static final String VALVE_NUMBER = "Number";
-    private static final String VALVE_PERCENT = "Percent";
     private static final String VALVE_COUNTDOWN = "Countdown";
     private static final String VALVE_MINUTE= "Minute";
     private static final String VALVE_HOUR = "Hour";
@@ -95,22 +96,22 @@ public class ValveOptionsData implements CustomSerialization
         }
 
 		arr[3] = (byte) daysOn;
-		ByteBuffer bb = ByteBuffer.allocate(4);
-		bb.order(ByteOrder.LITTLE_ENDIAN);
-		bb.putInt(m_timeCountdown);
 		arr[4] = (byte) (m_timeCountdown >> 8);//is this ok? is int treated as short?!
 		arr[5] = (byte) m_timeCountdown;
 
-		//TODO: calculate the crc value, and place it in front of the byte array
-		m_masterSwitch = true;
-
-		return arr;
+		return MyCrc32.calculateCrcAndCombine(arr);
 	}
 
 	@Override
-	final public void fromArduinoBytes(final byte[] bytes)
+	final public void fromArduinoBytes(final byte[] bytes, long crc32) throws InvalidObjectException
 	{
-		//TODO: read the crc value from the byte array, and compare it to the calculated one.
+		CRC32 crc = new CRC32();
+		crc.update(bytes);
+		if(crc.getValue() != crc32)
+		{
+			throw new InvalidObjectException("Valve crc mismatch");
+		}
+
 		byte valveNumber = bytes[0];
 		byte hour = bytes[1];
 		byte minute = bytes[2];
@@ -126,13 +127,13 @@ public class ValveOptionsData implements CustomSerialization
 			repeatDays[k] = ((daysOn >> k+1) & 0x1) == 1;
 		}
 		int timeCountdown = (((bytes[4] & 0xFF) << 8) | (bytes[5] & 0xFF));
-		//TODO: sanitize the above values
+		//TODO: sanitize the below values
 		this.m_valveNumber = valveNumber;
 		this.m_hour = hour;
 		this.m_minute =minute;
 		this.m_repeatDays = repeatDays;
 		this.m_timeCountdown = timeCountdown;
-		this.m_masterSwitch = false;
+		this.m_masterSwitch = true;
 	}
 
 
@@ -163,9 +164,9 @@ public class ValveOptionsData implements CustomSerialization
 		fromJSON(obj);
 	}
 
-	ValveOptionsData(byte[] bytes)
+	public ValveOptionsData(byte[] bytes, long crc32) throws InvalidObjectException
 	{
-		fromArduinoBytes(bytes);
+		fromArduinoBytes(bytes, crc32);
 	}
 
     public void setValveName(String valveName) {

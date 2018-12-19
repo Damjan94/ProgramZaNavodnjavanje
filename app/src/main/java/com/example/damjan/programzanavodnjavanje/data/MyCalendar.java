@@ -6,6 +6,7 @@ import org.json.JSONObject;
 import java.io.InvalidObjectException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.zip.CRC32;
 
 public class MyCalendar extends GregorianCalendar implements CustomSerialization
 {
@@ -39,14 +40,18 @@ public class MyCalendar extends GregorianCalendar implements CustomSerialization
 		date[4] = (byte)(this.get(Calendar.DAY_OF_MONTH));
 		date[5] = (byte)(this.get(Calendar.MONTH));
 		date[6] = (byte)(this.get(Calendar.YEAR)-2000);//arduino uses years from 0-99
-		return date;
+
+		return MyCrc32.calculateCrcAndCombine(date);
 	}
 
 	@Override
-	public void fromArduinoBytes(byte[] bytes) throws InvalidObjectException
+	public void fromArduinoBytes(byte[] bytes, long crc32) throws InvalidObjectException
 	{
-		if(bytes.length != NETWORK_SIZE)
-			throw new InvalidObjectException("the provided byte buffer is not 6 bytes");
+		CRC32 crc = new CRC32();
+		crc.update(bytes);
+
+		if(bytes.length != NETWORK_SIZE && crc.getValue() != crc32)
+			throw new InvalidObjectException("the provided byte buffer is not 6 bytes, or crc mismatch");
 
 		this.set(Calendar.SECOND, 		bytes[0]);
 		this.set(Calendar.MINUTE, 		bytes[1]);

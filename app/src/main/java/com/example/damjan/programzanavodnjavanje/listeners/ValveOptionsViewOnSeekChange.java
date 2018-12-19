@@ -16,13 +16,14 @@ public class ValveOptionsViewOnSeekChange implements SeekBar.OnSeekBarChangeList
 		m_activity = activity;
 		m_holder = holder;
 	}
+
 	@Override
 	public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
 	{
-		int newPercentage = seekBar.getProgress();
-		((IComm) m_activity).setValvePercentage(newPercentage, m_holder.getAdapterPosition());
+		//int newPercentage = seekBar.getProgress();
+		//((IComm) m_activity).setValvePercentage(newPercentage, m_holder.getAdapterPosition());
 	}
-	
+
 	@Override
 	public void onStartTrackingTouch(SeekBar seekBar)
 	{

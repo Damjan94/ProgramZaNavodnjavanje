@@ -27,16 +27,6 @@ public class ValveOptionsViewOnClick implements View.OnClickListener
 	{
 		switch(v.getId())
 		{
-			case R.id.editTextNumberPercent:
-			{
-				DialogFragment numberPicker = new Dialogs.NumberPicker();
-				Bundle bundle = new Bundle();
-				bundle.putInt(Dialogs.POSITION, m_viewHolder.getAdapterPosition());
-				bundle.putInt(Dialogs.FUNCTION, Dialogs.FUNCTION_UPDATE_PERCENTAGE);
-				numberPicker.setArguments(bundle);
-				numberPicker.show(m_activity.getFragmentManager(), "percentagePicker");
-				break;
-			}
 			case R.id.textViewTime:
 			{
 				DialogFragment timePicker = new Dialogs.TimePicker();

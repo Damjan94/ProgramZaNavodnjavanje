@@ -10,6 +10,7 @@ import java.util.ArrayList;
 
 public interface IComm {
     void setTime(byte hour, byte minute, int viewHolderPosition);
+    void setTimeCountdown(int countdownMinutes, int viewHolderPosition);
     void setValveNumber(byte num, int viewHolderPosition);
     void setValveName(String name, int viewHolderPosition);
     void setValveDayOn(boolean[] days, int viewHolderPosition);

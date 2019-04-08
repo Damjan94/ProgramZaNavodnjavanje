@@ -1,64 +1,46 @@
 package com.example.damjan.programzanavodnjavanje.data;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.example.damjan.programzanavodnjavanje.bluetooth.Message;
 
-import java.io.InvalidObjectException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.zip.CRC32;
 
-public class MyCalendar extends GregorianCalendar implements CustomSerialization
+public class MyCalendar extends GregorianCalendar implements NetworkSerializable
 {
-	public final static int NETWORK_SIZE = 7;
-	public MyCalendar()
-	{
-		super();
-	}
+    public final static int NETWORK_SIZE = 7;
 
-	@Override
-	public JSONObject toJson() throws JSONException
-	{
-		throw new UnsupportedOperationException();
-	}
+    public MyCalendar() { super(); }
 
-	@Override
-	public void fromJSON(JSONObject jsonIn) throws JSONException
-	{
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Message toMessage()
+    {
+        Message msg = new Message(Message.Type.COMMAND, Message.Action.TIME, (byte) MyCalendar.NETWORK_SIZE);
 
-	@Override
-	public byte[] toArduinoBytes()
-	{
-		byte[] date = new byte[NETWORK_SIZE];
+        msg.set(0, (byte) (this.get(Calendar.SECOND)));
+        msg.set(1, (byte) (this.get(Calendar.MINUTE)));
+        msg.set(2, (byte) (this.get(Calendar.HOUR_OF_DAY)));
+        msg.set(3, (byte) (this.get(Calendar.DAY_OF_WEEK)));
+        msg.set(4, (byte) (this.get(Calendar.DAY_OF_MONTH)));
+        msg.set(5, (byte) (this.get(Calendar.MONTH)));
+        msg.set(6, (byte) (this.get(Calendar.YEAR) - 2000));//arduino uses years from 0-99
 
-		date[0] = (byte)(this.get(Calendar.SECOND));
-		date[1] = (byte)(this.get(Calendar.MINUTE));
-		date[2] = (byte)(this.get(Calendar.HOUR));
-		date[3] = (byte)(this.get(Calendar.DAY_OF_WEEK));
-		date[4] = (byte)(this.get(Calendar.DAY_OF_MONTH));
-		date[5] = (byte)(this.get(Calendar.MONTH));
-		date[6] = (byte)(this.get(Calendar.YEAR)-2000);//arduino uses years from 0-99
+        if (msg.at(6) == 0)
+        {
+            throw new IllegalStateException("arduino treats year 0 as an invalid date");
+        }
 
-		return MyCrc32.calculateCrcAndCombine(date);
-	}
+        return msg;
+    }
 
-	@Override
-	public void fromArduinoBytes(byte[] bytes, long crc32) throws InvalidObjectException
-	{
-		CRC32 crc = new CRC32();
-		crc.update(bytes);
-
-		if(bytes.length != NETWORK_SIZE && crc.getValue() != crc32)
-			throw new InvalidObjectException("the provided byte buffer is not 6 bytes, or crc mismatch");
-
-		this.set(Calendar.SECOND, 		bytes[0]);
-		this.set(Calendar.MINUTE, 		bytes[1]);
-		this.set(Calendar.HOUR, 		bytes[2]);
-		this.set(Calendar.DAY_OF_WEEK, 	bytes[3]);
-		this.set(Calendar.DAY_OF_MONTH, bytes[4]);
-		this.set(Calendar.MONTH, 		bytes[5]);
-		this.set(Calendar.YEAR, 		bytes[6]+2000);//arduino uses years from 0-99
-	}
+    @Override
+    public void fromMessage(Message message)
+    {
+        this.set(Calendar.SECOND, message.at(0));
+        this.set(Calendar.MINUTE, message.at(1));
+        this.set(Calendar.HOUR_OF_DAY, message.at(2));
+        this.set(Calendar.DAY_OF_WEEK, message.at(3));
+        this.set(Calendar.DAY_OF_MONTH, message.at(4));
+        this.set(Calendar.MONTH, message.at(5));
+        this.set(Calendar.YEAR, message.at(6) + 2000);//arduino uses years from 0-99
+    }
 }

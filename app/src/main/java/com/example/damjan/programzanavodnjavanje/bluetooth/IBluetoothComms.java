@@ -1,20 +1,8 @@
 package com.example.damjan.programzanavodnjavanje.bluetooth;
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
-import android.util.Log;
-import android.widget.Toast;
-
-import com.example.damjan.programzanavodnjavanje.IComm;
-import com.example.damjan.programzanavodnjavanje.MainActivity;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Calendar;
-import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * Created by damjan on 4/5/18.
@@ -22,17 +10,17 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public interface IBluetoothComms
 {
-	void connected();
+    void connected();
 
-	void connectionFailed();
+    void connectionFailed();
 
-	void disconnected();
+    void disconnected();
 
-	void setTemperature(float temperature);
+    void setTemperature(String temperature);
 
-	void setTime(Calendar time);
+    void setTime(Calendar time);
 
-	void setValves(ValveOptionsData[] valves);
+    void setValves(ValveOptionsData[] valves);
 
 }
 

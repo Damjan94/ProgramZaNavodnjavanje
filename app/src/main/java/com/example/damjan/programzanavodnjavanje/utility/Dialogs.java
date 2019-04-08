@@ -91,7 +91,8 @@ public final class Dialogs {
                                 return;
                             }
                             int minutes = Integer.parseInt(m_minuteText.getText().toString());
-                            m_comm.setTime((byte)-1, (byte)minutes, m_pos);
+                            //m_comm.setTime((byte)-1, (byte)minutes, m_pos);
+                            m_comm.setTimeCountdown(minutes, m_pos);
                             //Dismiss once everything is OK.
                             dialog.dismiss();
                         }

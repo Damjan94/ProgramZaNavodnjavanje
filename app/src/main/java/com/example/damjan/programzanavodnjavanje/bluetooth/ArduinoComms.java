@@ -5,388 +5,401 @@ import android.bluetooth.BluetoothSocket;
 
 import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
 import com.example.damjan.programzanavodnjavanje.data.MyCalendar;
-import com.example.damjan.programzanavodnjavanje.data.MyCrc32;
 import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.zip.CRC32;
 
 
 public class ArduinoComms extends Thread
 {
 
-	private static final ArduinoComms ONLY_INSTANCE = new ArduinoComms();
+    private static final ArduinoComms ONLY_INSTANCE = new ArduinoComms();
+    private final static String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
+    private static final BlockingQueue<Runnable> TASK_LIST = new LinkedBlockingQueue<>();
+    private static InputStream inputStream;
+    private static OutputStream outputStream;
+    private static ArrayList<IBluetoothComms> comms = new ArrayList<>();
+    private static BluetoothSocket socket;
 
-	static
-	{
-		ONLY_INSTANCE.start();
-	}
+    static
+    {
+        ONLY_INSTANCE.start();
+    }
+    private ArduinoComms()
+    {
+        super("BluetoothCommThread");
+    }
 
-	private ArduinoComms()
-	{
-	}
+    public static void connect(final BluetoothDevice device)
+    {
+        connect(device, 3);
+    }
 
-	private final static String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
+    public static void connect(final BluetoothDevice device, int connectRetryCount)
+    {
 
-	private static final BlockingQueue<Runnable> TASK_LIST = new LinkedBlockingQueue<>();
+        TASK_LIST.add(() ->
+        {
+            if (socket != null && socket.isConnected() && socket.getRemoteDevice().equals(device))
+            {
+                return;
+            }
 
-	private static InputStream inputStream;
-	private static OutputStream outputStream;
+            disconnectInternal();
 
-	private static ArrayList<IBluetoothComms> comms = new ArrayList<>();
-	private static BluetoothSocket socket;
+            UUID uuid = UUID.fromString(MY_UUID);
+            try
+            {
+                socket = device.createRfcommSocketToServiceRecord(uuid);
+            } catch (IOException e)
+            {
+                ConsoleActivity.log(e.toString());
+                notifyConnectionFailed();
+                return;
+            }
+            int retryCount = 0;
+            do
+            {
+                try
+                {
+                    socket.connect();
+                    inputStream = socket.getInputStream();
+                    outputStream = socket.getOutputStream();
+                } catch (IOException e)
+                {
+                    ConsoleActivity.log(e.toString() + '\n');
+                    retryCount++;
+                }
+            } while (retryCount < connectRetryCount && !socket.isConnected());
+            if (socket.isConnected())
+            {
+                notifyConnected();
+            } else
+            {
+                //failed to connect...
+                notifyConnectionFailed();
+            }
 
-	@Override
-	public void run()
-	{
-		while(true)
-		{
-			try {
-				TASK_LIST.take().run();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	public static void connect(final BluetoothDevice device)
-	{
-		connect(device, 3);
-	}
-	public static void connect(final BluetoothDevice device, int connectRetryCount)
-	{
-
-		TASK_LIST.add(()->
-		{
-			if(socket != null && socket.isConnected() && socket.getRemoteDevice().equals(device))
-			{
-				return;
-			}
-
-			disconnectInternal();
-
-			UUID uuid = UUID.fromString(MY_UUID);
-			try {
-				socket = device.createRfcommSocketToServiceRecord(uuid);
-			} catch (IOException e) {
-				ConsoleActivity.log(e.toString());
-				notifyConnectionFailed();
-				return;
-			}
-			int retryCount = 0;
-			do {
-				try {
-					socket.connect();
-					inputStream = socket.getInputStream();
-					outputStream = socket.getOutputStream();
-				} catch (IOException e) {
-					ConsoleActivity.log(e.toString()+'\n');
-					retryCount++;
-				}
-			}while(retryCount < connectRetryCount && !socket.isConnected());
-			if(socket.isConnected())
-			{
-				notifyConnected();
-			}
-			else
-			{
-				//failed to connect...
-				notifyConnectionFailed();
-			}
-		});
-	}
-
-	//we add the task to notify disconnected because
-	//disconnectInternal is used internally and we don't want to
-	//notify listeners from internal calls
-	public static void disconnect()
-	{
-		TASK_LIST.add(ArduinoComms::disconnectInternal);
-		TASK_LIST.add(ArduinoComms::notifyDisconnected);
-		//TODO if waiting at socket.connect from connect() notify the tread
-	}
-
-	private static void disconnectInternal()
-	{
-		try {
-			if(socket == null)
-			{
-				return;
-			}
-			socket.close();
-			socket = null;
-			inputStream = null;
-			outputStream = null;
-		} catch (IOException e) {
-			ConsoleActivity.log(e.toString());
-		}
-	}
-
-	public static void registerListener(IBluetoothComms comm)
-	{
-		if(comms.contains(comm))
-		{
-			return;
-		}
-		comms.add(comm);
-		if(socket != null && socket.isConnected())
-		{
-			comm.connected();//notify the listener that we are already connected.
-		}
-	}
-
-	public static void unregisterListener(IBluetoothComms comm)
-	{
-		comms.remove(comm);
-	}
-
-	public static void getTemp()
-	{
-		TASK_LIST.add(()->
-		{
+/*
+			Message msg = new Message();
 			try
 			{
-				Message msg = new Message(Message.Type.REQUEST, Message.Action.TEMPERATURE);
-				outputStream.write(msg.toArduinoBytes());
-				outputStream.flush();
-
-
-				long receivedCRC32 = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
-				byte temp = (byte)inputStream.read();
-
-				MyCrc32 crc32 = new MyCrc32();
-				crc32.update(temp);
-				if(crc32.getValue() != receivedCRC32)
-				{
-					ConsoleActivity.log("getTemp crc mismatch. expected "+crc32.getValue()+" got "+receivedCRC32);
-				}
-
-				notifySetTemperature(temp);
+				msg.read(inputStream);
 			} catch (IOException e)
 			{
-				ConsoleActivity.log(e.toString());
+				e.printStackTrace();
 			}
-		});
-	}
+*/
+        });
+    }
 
-	public static void getTempFloat()
-	{
-		TASK_LIST.add(() ->
-		{
-			try {
-				Message msg = new Message(Message.Type.REQUEST, Message.Action.TEMPERATURE_FLOAT);
-				outputStream.write(msg.toArduinoBytes());
-				outputStream.flush();
+    //we add the task to notify disconnected because
+    //disconnectInternal is used internally and we don't want to
+    //notify listeners from internal calls
+    public static void disconnect()
+    {
+        TASK_LIST.add(ArduinoComms::disconnectInternal);
+        TASK_LIST.add(ArduinoComms::notifyDisconnected);
+        //TODO if waiting at socket.connect from connect() notify the tread
+    }
 
-				long receivedCRC32 = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
-				byte[] temperature = readBytes(4);//float is 4 bytes
+    private static void disconnectInternal()
+    {
+        try
+        {
+            if (socket == null)
+            {
+                return;
+            }
+            socket.close();
+            socket = null;
+            inputStream = null;
+            outputStream = null;
+        } catch (IOException e)
+        {
+            ConsoleActivity.log(e.toString());
+        }
+    }
 
-				CRC32 crc32 = new CRC32();
-				crc32.update(temperature);
-				if(crc32.getValue() != receivedCRC32)
-				{
-					ConsoleActivity.log("getTempFloat crc mismatch. expected "+crc32.getValue()+" got "+receivedCRC32);
-				}
+    public static void registerListener(IBluetoothComms comm)
+    {
+        if (comms.contains(comm))
+        {
+            return;
+        }
+        comms.add(comm);
+        if (socket != null && socket.isConnected())
+        {
+            comm.connected();//notify the listener that we are already connected.
+        }
+    }
 
-				ByteBuffer bb = ByteBuffer.wrap(temperature);
-				bb.order(ByteOrder.BIG_ENDIAN);
-				float temp = bb.getFloat();
-				notifySetTemperature(temp);
-			} catch (IOException e) {
-				ConsoleActivity.log(e.toString());
-			}
-		});
-	}
+    public static void unregisterListener(IBluetoothComms comm)
+    {
+        comms.remove(comm);
+    }
 
-	public static void getValves()
-	{
-		TASK_LIST.add(()->
-		{
-			try {
-				Message msg = new Message(Message.Type.REQUEST, Message.Action.VALVE);
-				outputStream.write(msg.toArduinoBytes());
-				outputStream.flush();
-				//how many valves are we going to get
-				long messageCrc = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
-				Message msgCount = new Message(readBytes(Message.NETWORK_SIZE), messageCrc);
+    public static void getTemp()
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
+                Message msg = new Message(Message.Type.REQUEST, Message.Action.TEMPERATURE);
+                msg.write(outputStream);
+                msg.read(inputStream);
 
-				ValveGroup arduinoValves = new ValveGroup();
+                notifySetTemperature(Integer.toString(msg.at(0)));
+            } catch (IOException e)
+            {
+                ConsoleActivity.log(e.toString());
+            }
+        });
+    }
 
-				for(int i = 0; i < msgCount.itemCount; ++i)
-				{
-					long valveCrc = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
-					arduinoValves.addValveOptionData(new ValveOptionsData(readBytes(ValveOptionsData.NETWORK_SIZE), valveCrc));
-				}
+    public static void getTempFloat()
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
+                Message msg = new Message(Message.Type.REQUEST, Message.Action.TEMPERATURE_FLOAT);
+                msg.write(outputStream);
+                msg.read(inputStream);
 
-				notifySetValves(arduinoValves.getValveOptionDataCollection().toArray(new ValveOptionsData[0]));
-			} catch (IOException e) {
-				ConsoleActivity.log(e.toString());
-			}
-		});
-	}
+                notifySetTemperature(new String(msg.getData()));//we are receiving float as a string
+            } catch (IOException e)
+            {
+                ConsoleActivity.log(e.toString());
+            }
+        });
+    }
 
-	public static void sendValves(final ValveGroup valves)
-	{
-		TASK_LIST.add(()->
-		{
-			try
-			{
+    public static void getValves()
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
+                Message msg = new Message(Message.Type.REQUEST, Message.Action.VALVE);
+                msg.write(outputStream);
+                msg.read(inputStream);
+                byte valveCount = msg.at(0);//this is silly, just create a utility function, do the same for temp, while you're at it
+                ValveGroup arduinoValves = new ValveGroup();
+                for (int i = 0; i < valveCount; i++)
+                {
+                    msg.read(inputStream);
+                    arduinoValves.addValveOptionData(new ValveOptionsData(msg));
+                }
+                notifySetValves(arduinoValves.getValveOptionDataCollection().toArray(new ValveOptionsData[0]));
+            } catch (IOException e)
+            {
+                ConsoleActivity.log(e.toString());
+            }
+        });
+    }
 
-				Message msg = new Message(Message.Type.COMMAND, Message.Action.VALVE, (byte)valves.getValveOptionDataCollection().size());//TODO: casting to byte is dangerous if the value is > 255
-				outputStream.write(msg.toArduinoBytes());
-				outputStream.flush();
+    public static void sendValves(final ValveGroup valves)
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
 
-				for(ValveOptionsData data : valves.getValveOptionDataCollection())
-				{
-					long messageCrc = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
-					msg.fromArduinoBytes(readBytes(Message.NETWORK_SIZE), messageCrc);
+                Message msg = new Message(Message.Type.COMMAND, Message.Action.VALVE, (byte) 1);
+                msg.set(0, (byte) valves.getValveOptionDataCollection().size());
+                msg.write(outputStream);
 
-					if (msg.type != Message.Type.INFO || msg.info != Message.Info.READY_TO_RECEIVE)
-					{
-						//TODO some error occurred, handle it
-						break;// or continue;?
-					}
-					outputStream.write(data.toArduinoBytes());
-					outputStream.flush();
-				}
-			} catch (IOException e) {
-				ConsoleActivity.log(e.toString());
-			}
-		});
-	}
+                for (ValveOptionsData data : valves.getValveOptionDataCollection())
+                {
+                    msg.read(inputStream);//wait for arduino to be ready to receive
+                    if (msg.getType() != Message.Type.INFO || msg.getInfo() != Message.Info.READY_TO_RECEIVE)
+                        throw new RuntimeException("[ArduinoComms] Received message is not of expected Message.Type " + msg.toString());
+                    data.toMessage().write(outputStream);
+                }
+            } catch (IOException e)
+            {
+                ConsoleActivity.log(e.toString());
+            }
+        });
+    }
 
-	public static void sendTime(final MyCalendar date)
-	{
-		TASK_LIST.add(()->
-		{
-			try
-			{
-				Message msg = new Message(Message.Type.COMMAND, Message.Action.TIME, (byte)1);
+    public static void sendTime(final MyCalendar date)
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
+                date.toMessage().write(outputStream);
+            } catch (IOException e)
+            {
+                ConsoleActivity.log(e.toString());
+            }
+        });
 
-				outputStream.write(msg.toArduinoBytes());
-				outputStream.write(date.toArduinoBytes());
-				outputStream.flush();
+    }
 
-			} catch (IOException e) {
-				ConsoleActivity.log(e.toString());
-			}
-		});
+    public static void getTime()
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
 
-	}
+                Message msg = new Message(Message.Type.REQUEST, Message.Action.TIME);
 
-	public static void getTime()
-	{
-		TASK_LIST.add(()->
-		{
-			try {
+                msg.write(outputStream);
 
-				Message msg = new Message(Message.Type.REQUEST, Message.Action.TIME);
+                MyCalendar date = new MyCalendar();
+                date.setFirstDayOfWeek(Calendar.SUNDAY);
 
-				outputStream.write(msg.toArduinoBytes());
-				outputStream.flush();
+                msg.read(inputStream);
+                date.fromMessage(msg);
 
-				MyCalendar date = new MyCalendar();
-				date.setFirstDayOfWeek(Calendar.SUNDAY);
+                notifySetTime(date);
+            } catch (IOException e)
+            {
+                ConsoleActivity.log(e.toString());
+            }
+        });
+    }
 
-				long dateCrc = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
-				date.fromArduinoBytes(readBytes(MyCalendar.NETWORK_SIZE), dateCrc);
+    public static void getHBridgePin()
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
+                Message msg = new Message(Message.Type.REQUEST, Message.Action.H_BRIDGE_PIN);
+                msg.write(outputStream);
 
-				notifySetTime(date);
-			} catch (IOException e) {
-				ConsoleActivity.log(e.toString());
-			}
-		});
-	}
+                msg.read(inputStream);
+                byte[] hbridgePin = msg.getData();
+                ConsoleActivity.log("Hbridge: " + hbridgePin[0] + ", " + hbridgePin[1]);
+            } catch (IOException e)
+            {
+                ConsoleActivity.log(e.toString());
+            }
+        });
+    }
 
-	public static void getHBridgePin()
-	{
-		TASK_LIST.add(()->
-		{
-			try {
-				Message msg = new Message(Message.Type.REQUEST, Message.Action.H_BRIDGE_PIN);
-				outputStream.write(msg.toArduinoBytes());
-				outputStream.flush();
+    public static void getErrors()
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
+                Message msg = new Message(Message.Type.REQUEST, Message.Action.ERROR);
+                msg.write(outputStream);
+                MyCalendar calender = new MyCalendar();
+                do
+                {
+                    msg.read(inputStream);
+                    calender.fromMessage(msg);
+                    byte errorNumber = msg.at(MyCalendar.NETWORK_SIZE);
+                }while(msg.getType() != Message.Type.INFO);
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
 
-				long receivedCRC32 = MyCrc32.convert(readBytes(MyCrc32.NETWORK_SIZE));//order matters! always read the crc first!!!
-				byte[] hbridgePin = readBytes(2);
-				CRC32 crc32 = new CRC32();
-				crc32.update(hbridgePin);
-				if(crc32.getValue() != receivedCRC32)
-				{
-					ConsoleActivity.log("getHBridgePin crc mismatch. expected "+crc32.getValue()+" got "+receivedCRC32);
-				}
-				ConsoleActivity.log("Hbridge: "+ hbridgePin[0] + ", " + hbridgePin[1]);
-			} catch (IOException e) {
-				ConsoleActivity.log(e.toString());
-			}
-		});
-	}
+        });
+    }
 
-	private static void notifyConnected()
-	{
-		for(IBluetoothComms comm : comms)
-		{
-			comm.connected();
-		}
-	}
+    public static void getSleepTimes()
+    {
+        TASK_LIST.add(() ->
+        {
+            try
+            {
+                Message msgShort = new Message(Message.Type.REQUEST, Message.Action.SLEEP_TIME_SHORT);
+                msgShort.write(outputStream);
+                msgShort.read(inputStream);
+                MyCalendar sleepTimeShortCal = new MyCalendar();
+                sleepTimeShortCal.fromMessage(msgShort);
 
-	private static void notifyConnectionFailed()
-	{
-		for(IBluetoothComms comm : comms)
-		{
-			comm.connectionFailed();
-		}
-	}
+                Message msgLong = new Message(Message.Type.REQUEST, Message.Action.SLEEP_TIME_LONG);
+                msgLong.write(outputStream);
+                msgLong.read(inputStream);
+                MyCalendar sleepTimeLongCal = new MyCalendar();
+                sleepTimeLongCal.fromMessage(msgLong);
 
-	private static void notifyDisconnected()
-	{
-		for(IBluetoothComms comm : comms)
-		{
-			comm.disconnected();
-		}
-	}
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            }
 
-	private static void notifySetTemperature(float temperature)
-	{
-		for(IBluetoothComms comm : comms)
-		{
-			comm.setTemperature(temperature);
-		}
-	}
+        });
+    }
 
-	private static void notifySetTime(Calendar time)
-	{
-		for(IBluetoothComms comm : comms)
-		{
-			comm.setTime(time);
-		}
-	}
+    private static void notifyConnected()
+    {
+        for (IBluetoothComms comm : comms)
+        {
+            comm.connected();
+        }
+    }
 
-	private static void notifySetValves(ValveOptionsData[] valves)
-	{
-		for(IBluetoothComms comm : comms)
-		{
-			comm.setValves(valves);//TODO:  should we modify the main Valves Array?
-		}
-	}
+    private static void notifyConnectionFailed()
+    {
+        for (IBluetoothComms comm : comms)
+        {
+            comm.connectionFailed();
+        }
+    }
 
-	private static byte[] readBytes(int byteCount) throws IOException
-	{
-		byte[] bytes = new byte[byteCount];
-		int readBytes = 0;
-		do {
-			readBytes += inputStream.read(bytes, readBytes, bytes.length-readBytes);
-		}while (!(readBytes >= byteCount));
+    private static void notifyDisconnected()
+    {
+        for (IBluetoothComms comm : comms)
+        {
+            comm.disconnected();
+        }
+    }
 
-		return bytes;
-	}
+    private static void notifySetTemperature(String temperature)
+    {
+        for (IBluetoothComms comm : comms)
+        {
+            comm.setTemperature(temperature);
+        }
+    }
+
+    private static void notifySetTime(Calendar time)
+    {
+        for (IBluetoothComms comm : comms)
+        {
+            comm.setTime(time);
+        }
+    }
+
+    private static void notifySetValves(ValveOptionsData[] valves)
+    {
+        for (IBluetoothComms comm : comms)
+        {
+            comm.setValves(valves);//TODO:  should we modify the main Valves Array?
+        }
+    }
+
+    @Override
+    public void run()
+    {
+        while (true)
+        {
+            try
+            {
+                TASK_LIST.take().run();
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
 }

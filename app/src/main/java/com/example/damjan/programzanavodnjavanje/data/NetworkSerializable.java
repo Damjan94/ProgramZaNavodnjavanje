@@ -1,6 +1,6 @@
 package com.example.damjan.programzanavodnjavanje.data;
 
-import com.example.damjan.programzanavodnjavanje.bluetooth.Message;
+import com.example.damjan.programzanavodnjavanje.data.bluetooth.Message;
 
 public interface NetworkSerializable
 {

@@ -1,9 +1,11 @@
-package com.example.damjan.programzanavodnjavanje.bluetooth;
+package com.example.damjan.programzanavodnjavanje.data.bluetooth;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.support.annotation.NonNull;
 
 import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
+import com.example.damjan.programzanavodnjavanje.data.Error;
 import com.example.damjan.programzanavodnjavanje.data.MyCalendar;
 import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
@@ -21,13 +23,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ArduinoComms extends Thread
 {
 
-    private static final ArduinoComms ONLY_INSTANCE = new ArduinoComms();
-    private final static String MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
-    private static final BlockingQueue<Runnable> TASK_LIST = new LinkedBlockingQueue<>();
-    private static InputStream inputStream;
-    private static OutputStream outputStream;
-    private static ArrayList<IBluetoothComms> comms = new ArrayList<>();
-    private static BluetoothSocket socket;
+    private static final ArduinoComms               ONLY_INSTANCE = new ArduinoComms();
+    private final static String                     MY_UUID = "00001101-0000-1000-8000-00805F9B34FB";
+    private static final BlockingQueue<Runnable>    TASK_LIST = new LinkedBlockingQueue<>();
+    private static InputStream                      inputStream;
+    private static OutputStream                     outputStream;
+    private static ArrayList<IBluetoothComms>       comms = new ArrayList<>();
+    private static BluetoothSocket                  socket;
 
     static
     {
@@ -129,7 +131,7 @@ public class ArduinoComms extends Thread
         }
     }
 
-    public static void registerListener(IBluetoothComms comm)
+    public static void registerListener(@NonNull IBluetoothComms comm)
     {
         if (comms.contains(comm))
         {
@@ -193,13 +195,13 @@ public class ArduinoComms extends Thread
                 msg.write(outputStream);
                 msg.read(inputStream);
                 byte valveCount = msg.at(0);//this is silly, just create a utility function, do the same for temp, while you're at it
-                ValveGroup arduinoValves = new ValveGroup();
+                ValveGroup arduinoValves = new ValveGroup("arduinoValves");
                 for (int i = 0; i < valveCount; i++)
                 {
                     msg.read(inputStream);
-                    arduinoValves.addValveOptionData(new ValveOptionsData(msg));
+                    arduinoValves.add(new ValveOptionsData(msg));
                 }
-                notifySetValves(arduinoValves.getValveOptionDataCollection().toArray(new ValveOptionsData[0]));
+                notifySetValves(arduinoValves.toArray(new ValveOptionsData[0]));
             } catch (IOException e)
             {
                 ConsoleActivity.log(e.toString());
@@ -215,10 +217,10 @@ public class ArduinoComms extends Thread
             {
 
                 Message msg = new Message(Message.Type.COMMAND, Message.Action.VALVE, (byte) 1);
-                msg.set(0, (byte) valves.getValveOptionDataCollection().size());
+                msg.set(0, (byte) valves.size());
                 msg.write(outputStream);
 
-                for (ValveOptionsData data : valves.getValveOptionDataCollection())
+                for (ValveOptionsData data : valves)
                 {
                     msg.read(inputStream);//wait for arduino to be ready to receive
                     if (msg.getType() != Message.Type.INFO || msg.getInfo() != Message.Info.READY_TO_RECEIVE)
@@ -299,13 +301,13 @@ public class ArduinoComms extends Thread
             {
                 Message msg = new Message(Message.Type.REQUEST, Message.Action.ERROR);
                 msg.write(outputStream);
-                MyCalendar calender = new MyCalendar();
+                ArrayList<Error> list = new ArrayList<>();
                 do
                 {
                     msg.read(inputStream);
-                    calender.fromMessage(msg);
-                    byte errorNumber = msg.at(MyCalendar.NETWORK_SIZE);
+                    list.add(new Error(msg));
                 }while(msg.getType() != Message.Type.INFO);
+                notifyError(list);
             } catch (IOException e)
             {
                 e.printStackTrace();
@@ -385,6 +387,14 @@ public class ArduinoComms extends Thread
         for (IBluetoothComms comm : comms)
         {
             comm.setValves(valves);//TODO:  should we modify the main Valves Array?
+        }
+    }
+
+    private static void notifyError(ArrayList<Error> errors)
+    {
+        for (IBluetoothComms comm : comms)
+        {
+            comm.setErrors(errors.toArray(new Error[0]));//comm.error(errors);
         }
     }
 

@@ -1,26 +1,24 @@
 package com.example.damjan.programzanavodnjavanje.viewHolders;
 
 import android.app.Activity;
-import android.content.DialogInterface;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.CheckBox;
-import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 
 import com.example.damjan.programzanavodnjavanje.BuildConfig;
-import com.example.damjan.programzanavodnjavanje.IComm;
+import com.example.damjan.programzanavodnjavanje.ISetValveData;
 import com.example.damjan.programzanavodnjavanje.R;
-import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
+import com.example.damjan.programzanavodnjavanje.listeners.ValveOptionsViewOnClick;
 
 /**
  * Created by damjan on 3/18/18.
  */
 
-public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
+public class ValveOptionViewHolder extends RecyclerView.ViewHolder implements IHolder{
 	
 	private TextView m_timeView;
 	private TextView m_timeCountdown;
@@ -70,8 +68,13 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 		m_masterSwitch = itemView.findViewById(R.id.switchMaster);
 		m_timeView = itemView.findViewById(R.id.textViewTime);
 		m_timeCountdown = itemView.findViewById(R.id.textViewTimeCountdown);
-		m_valveName = itemView.findViewById(R.id.textViewValveName);
-		m_valveNumber = itemView.findViewById(R.id.textViewValveNumber);
+
+		m_valveName = itemView.findViewById(R.id.textViewName);
+		m_valveName.setText(activity.getResources().getText(R.string.valve_name));
+
+		m_valveNumber = itemView.findViewById(R.id.textViewNumber);
+		m_valveNumber.setText(activity.getResources().getText(R.string.valve_number));
+
 		m_dayCheck = new CheckBox[]
 				{
 						itemView.findViewById(R.id.checkBoxSun),
@@ -86,36 +89,26 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 	
 	
 		//TODO move this somewhere else
-		itemView.setOnLongClickListener(new View.OnLongClickListener()
-		{
-			@Override
-			public boolean onLongClick(View v)
-			{
-				AlertDialog.Builder alertDialog = new AlertDialog.Builder(m_activity);
-				String msg = m_activity.getResources().getString(R.string.confirm_valve_option_delete);
-				msg += " "+ ValveGroup.groups.get(0).getValveOptionDataCollection().get(getAdapterPosition()).getValveNumber();
-				msg +=".";
-				alertDialog.setMessage(msg);
-				alertDialog.setPositiveButton(R.string.positive_response, new DialogInterface.OnClickListener()
-				{
-					@Override
-					public void onClick(DialogInterface dialog, int which)
-					{
-						((IComm)m_activity).removeItem(getAdapterPosition());
-					}
-				});
-				alertDialog.setNegativeButton(R.string.negative_response, null);
-				alertDialog.show();
-				return true;
-			}
+		itemView.setOnLongClickListener(v -> {
+			AlertDialog.Builder alertDialog = new AlertDialog.Builder(m_activity);
+			String msg = m_activity.getResources().getString(R.string.confirm_valve_option_delete);
+			msg += " "+ m_valveNumber.getText();
+			msg +=".";
+			alertDialog.setMessage(msg);
+			alertDialog.setPositiveButton(R.string.positive_response, (dialog, which) -> ((ISetValveData) m_activity).removeItem(getAdapterPosition()));
+			alertDialog.setNegativeButton(R.string.negative_response, null);
+			alertDialog.show();
+			return true;
 		});
         
     }
 
     //update UI skipping any views that already have the same value
-    public void updateUI(ValveOptionsData data)
+	@Override
+	public <T> void updateUI(T data)
 	{
-        String time = data.getHours()+":"+data.getMinutes();
+		ValveOptionsData valveData = (ValveOptionsData)data;
+        String time = valveData.getHours()+":"+valveData.getMinutes();
         if(!(m_timeView.getText().toString().equals(time)))
 		{
 			m_timeView.setText(time);
@@ -129,14 +122,14 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 		{
 			countdownTime = -1;
 		}
-		if(countdownTime != data.getTimeCountdown())
+		if(countdownTime != valveData.getTimeCountdown())
 		{
-			m_timeCountdown.setText(String.valueOf(data.getTimeCountdown()));
+			m_timeCountdown.setText(String.valueOf(valveData.getTimeCountdown()));
 		}
         
-        if(!(m_valveName.getText().toString().equals(data.getValveName())))
+        if(!(m_valveName.getText().toString().equals(valveData.getValveName())))
 		{
-			m_valveName.setText(data.getValveName());
+			m_valveName.setText(valveData.getValveName());
 		}
 		
 		int valveNumber;
@@ -147,13 +140,13 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 		{
 			valveNumber = -1;
 		}
-		if(valveNumber != data.getValveNumber())
+		if(valveNumber != valveData.getValveNumber())
 		{
-			this.m_valveNumber.setText(String.valueOf(data.getValveNumber()));
+			this.m_valveNumber.setText(String.valueOf(valveData.getValveNumber()));
 		}
 
-		m_masterSwitch.setChecked(data.isMasterSwitch());
-        boolean[] days = data.getRepeatDays();
+		m_masterSwitch.setChecked(valveData.isMasterSwitch());
+        boolean[] days = valveData.getRepeatDays();
         if( BuildConfig.DEBUG &&(days.length != m_dayCheck.length))
 		{
 			throw new AssertionError();
@@ -168,4 +161,19 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder{
 			}
         }
     }
+
+	@Override
+	public <T> void setListener(T listener)
+	{
+		for (CheckBox checkBox : m_dayCheck)
+		{
+			checkBox.setOnClickListener((View.OnClickListener) listener);
+		}
+		m_masterSwitch.setOnClickListener((View.OnClickListener) listener);
+		m_timeView.setOnClickListener((View.OnClickListener) listener);
+		m_timeCountdown.setOnClickListener((View.OnClickListener) listener);
+		m_valveName.setOnClickListener((View.OnClickListener) listener);
+		m_valveNumber.setOnClickListener((View.OnClickListener) listener);
+
+	}
 }

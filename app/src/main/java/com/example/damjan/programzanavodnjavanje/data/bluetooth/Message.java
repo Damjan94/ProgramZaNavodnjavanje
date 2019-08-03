@@ -1,4 +1,4 @@
-package com.example.damjan.programzanavodnjavanje.bluetooth;
+package com.example.damjan.programzanavodnjavanje.data.bluetooth;
 
 import com.example.damjan.programzanavodnjavanje.data.MyCrc32;
 import com.example.damjan.programzanavodnjavanje.utility.Network;
@@ -88,7 +88,7 @@ public class Message
             byte protocolVersion = buf.get();
 
             this.m_type		= Type.get(buf.get());
-            this.m_action	= Action.fromByte(buf.get());
+            this.m_action	= Action.get(buf.get());
             this.m_info		= Info.get(buf.get());
 
             int size		= buf.get();
@@ -133,7 +133,7 @@ public class Message
         ByteBuffer buf = ByteBuffer.wrap(msgHeaderBuffer);
         byte protocolVersion = buf.get();//TODO set the protocol version to be used in the future, if supported
         this.m_type = Type.get(buf.get());
-        this.m_action = Action.fromByte(buf.get());
+        this.m_action = Action.get(buf.get());
         this.m_info = Info.get(buf.get());
         short size = buf.get();//the fact that size is transmitted as a byte,
         // ensures us that we wont have any large allocation requests(should there be any malformed packets)
@@ -163,10 +163,10 @@ public class Message
 
     public enum Type
     {
-        NONE((byte) 0x0),
-        COMMAND((byte) 0x1),    //Send new valves or time to arduino
-        REQUEST((byte) 0x2),    //Ask the arduino for some action
-        INFO((byte) 0x3);
+        NONE    ((byte) 0x0),
+        COMMAND ((byte) 0x1),    //Send new valves or time to arduino
+        REQUEST ((byte) 0x2),    //Ask the arduino for some action
+        INFO    ((byte) 0x3);
 
         final byte m_value;
 
@@ -198,15 +198,15 @@ public class Message
 
     public enum Action
     {
-        NONE((byte) 0x0),
-        VALVE((byte) 0x1),
-        TIME((byte) 0x2),
-        TEMPERATURE((byte) 0x3),
-        TEMPERATURE_FLOAT((byte) 0x4),
-        H_BRIDGE_PIN((byte) 0x5),
-        ERROR((byte) 0x6),
-        SLEEP_TIME_SHORT((byte) 0x7),
-        SLEEP_TIME_LONG((byte) 0x8);
+        NONE                ((byte) 0x0),
+        VALVE               ((byte) 0x1),
+        TIME                ((byte) 0x2),
+        TEMPERATURE         ((byte) 0x3),
+        TEMPERATURE_FLOAT   ((byte) 0x4),
+        H_BRIDGE_PIN        ((byte) 0x5),
+        ERROR               ((byte) 0x6),
+        SLEEP_TIME_SHORT    ((byte) 0x7),
+        SLEEP_TIME_LONG     ((byte) 0x8);
 
         byte m_value;
 
@@ -215,7 +215,7 @@ public class Message
             m_value = b;
         }
 
-        public static Action fromByte(byte action)
+        public static Action get(byte action)
         {
             if (action == VALVE.m_value)
             {
@@ -259,11 +259,11 @@ public class Message
     public enum Info
     {
 
-        NONE((byte) 0x0),
-        NOMINAL((byte) 0x1),
-        READY_TO_SEND((byte) 0x2),
-        READY_TO_RECEIVE((byte) 0x3),
-        HANDSHAKE((byte) 0x4);
+        NONE                ((byte) 0x0),
+        NOMINAL             ((byte) 0x1),
+        READY_TO_SEND       ((byte) 0x2),
+        READY_TO_RECEIVE    ((byte) 0x3),
+        HANDSHAKE           ((byte) 0x4);
 
         final byte m_value;
 

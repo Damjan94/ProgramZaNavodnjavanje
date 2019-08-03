@@ -1,6 +1,6 @@
 package com.example.damjan.programzanavodnjavanje.utility;
 
-import com.example.damjan.programzanavodnjavanje.bluetooth.Message;
+import com.example.damjan.programzanavodnjavanje.data.bluetooth.Message;
 
 import java.io.IOException;
 import java.io.InputStream;

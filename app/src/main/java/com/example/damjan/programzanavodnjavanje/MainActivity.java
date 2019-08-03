@@ -1,55 +1,47 @@
 package com.example.damjan.programzanavodnjavanje;
 
-import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
+import android.support.design.widget.NavigationView;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.damjan.programzanavodnjavanje.adapters.ValveOptionAdapter;
-import com.example.damjan.programzanavodnjavanje.bluetooth.ArduinoComms;
-import com.example.damjan.programzanavodnjavanje.bluetooth.IBluetoothComms;
-import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
+import com.example.damjan.programzanavodnjavanje.data.Error;
+import com.example.damjan.programzanavodnjavanje.data.ValveGroups;
+import com.example.damjan.programzanavodnjavanje.data.bluetooth.ArduinoComms;
+import com.example.damjan.programzanavodnjavanje.data.bluetooth.IBluetoothComms;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
+import com.example.damjan.programzanavodnjavanje.data.file.SaveFile;
+import com.example.damjan.programzanavodnjavanje.listeners.NavigationItemSelectedListener;
+import com.example.damjan.programzanavodnjavanje.utility.Dialogs;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
+import java.io.FileNotFoundException;
 import java.util.Calendar;
 
 
-public class MainActivity extends AppCompatActivity implements IComm, IBluetoothComms
+public class MainActivity extends AppCompatActivity implements ISetValveData, IBluetoothComms, IMainActivity
 {
-
-    public final static int VERSION_NUMBER = 0;
-    public final static String VERSION_STRING = "Version";
-    private final static String ARRAY_OF_VALVE_GROUPS_STRING = "ArrayOfValveGroups";
     private final static String SAVE_FILE_NAME = "my_file.json";
-    //TODO this is a quick hack. fromByte rid of it!
-    Button syncBluetooth;
-    private boolean m_isResumeExecuted = false;
-    private Thread m_loadFileThread = null;
-    public static Activity mainActivity;
+    private final static String ARRAY_OF_VALVE_GROUPS_STRING = "ArrayOfValveGroups";
 
-    private RecyclerView m_RecyclerView;
+    private SaveFile        m_saveFile;
+    private ValveGroups     m_valveGroups;//TODO Delete this
+
+    private RecyclerView    m_RecyclerView;
+
+    private ImageButton     m_getTempButton;
+    private TextView        m_temperatureText;
+    private TextView        m_dateTimeText;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -63,51 +55,33 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         switch (item.getItemId())
         {
-            case R.id.addValveButton:
+            case R.id.disconnect:
             {
-                addItem(new ValveOptionsData());
-                return true;
+                ArduinoComms.disconnect();
+                break;
+            }
+            case R.id.valves_to_send:
+            {
+                //TODO change recycler view to display the valves that are going to be sent
+                throw new UnsupportedOperationException();
+            }
+            case R.id.valves_on_arduino:
+            {
+                //TODO change recycler view to display the valves that are currently on the arduino
+                throw new UnsupportedOperationException();
             }
             case R.id.consoleModeButton:
             {
                 Intent i = new Intent(this, ConsoleActivity.class);
                 startActivity(i);
-                return true;
-            }
-            case R.id.connectBluetooth:
-            {
-                BluetoothAdapter defaultAdapter = BluetoothAdapter.getDefaultAdapter();
-                if (defaultAdapter == null)
-                {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
-                    String msg = getString(R.string.no_bluetooth_found);
-                    alertDialog.setMessage(msg);
-                    alertDialog.show();
-                    return true;
-                }
-                if (!defaultAdapter.isEnabled())
-                {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
-                    String msg = "Please enable bluetooth, and try again";
-                    alertDialog.setMessage(msg);
-                    alertDialog.show();
-                    return true;
-                }
-
-                BluetoothDevice device = defaultAdapter.getBondedDevices().iterator().next();
-                ArduinoComms.connect(device);
-                return true;
-            }
-            case R.id.showTemperature:
-            {
-                ArduinoComms.getTempFloat();
-                return true;
+                break;
             }
             default:
             {
                 return super.onOptionsItemSelected(item);
             }
         }
+        return true;
     }
 
     void setUpRecyclerView()
@@ -115,16 +89,14 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
         m_RecyclerView = findViewById(R.id.mainFragmentHolder);
         m_RecyclerView.setHasFixedSize(true);
 
-        LinearLayoutManager linearLayout = new LinearLayoutManager(this);
-        linearLayout.setOrientation(LinearLayoutManager.VERTICAL);
-        m_RecyclerView.setLayoutManager(linearLayout);
-
-        ValveOptionAdapter adapter = new ValveOptionAdapter(ValveGroup.groups.get(0).getValveOptionDataCollection(), this);
-        m_RecyclerView.setAdapter(adapter);
-
-        DividerItemDecoration decoration = new DividerItemDecoration(this, linearLayout.getOrientation());
-        m_RecyclerView.addItemDecoration(decoration);
-        ((DefaultItemAnimator) m_RecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
+//        LinearLayoutManager linearLayout = new LinearLayoutManager(this);
+//        linearLayout.setOrientation(LinearLayoutManager.VERTICAL);
+//        m_RecyclerView.setLayoutManager(linearLayout);
+//
+//        DividerItemDecoration decoration = new DividerItemDecoration(this, linearLayout.getOrientation());
+//        m_RecyclerView.addItemDecoration(decoration);
+//        ((DefaultItemAnimator) m_RecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
+//        //m_RecyclerView.getAdapter().notifyDataSetChanged();
     }
 
     @Override
@@ -133,7 +105,10 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
         android.os.Handler mHandler = getWindow().getDecorView().getHandler();
         mHandler.post(() ->
         {
-            syncBluetooth.setEnabled(true);
+            //syncBluetooth.setEnabled(true);
+            findViewById(R.id.sync_bluetooth).setEnabled(true);
+            findViewById(R.id.connect_bluetooth).setEnabled(false);
+            m_getTempButton.setEnabled(true);
             Toast.makeText(this, "Connected!", Toast.LENGTH_SHORT).show();
         });
     }
@@ -144,7 +119,9 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
         android.os.Handler mHandler = getWindow().getDecorView().getHandler();
         mHandler.post(() ->
         {
-            syncBluetooth.setEnabled(false);
+            findViewById(R.id.connect_bluetooth).setEnabled(true);
+            findViewById(R.id.sync_bluetooth).setEnabled(false);
+            m_getTempButton.setEnabled(false);
             Toast.makeText(this, "Failed to connect", Toast.LENGTH_SHORT).show();
         });
     }
@@ -155,7 +132,9 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
         android.os.Handler mHandler = getWindow().getDecorView().getHandler();
         mHandler.post(() ->
         {
-            syncBluetooth.setEnabled(false);
+            findViewById(R.id.connect_bluetooth).setEnabled(true);
+            findViewById(R.id.sync_bluetooth).setEnabled(false);
+            m_getTempButton.setEnabled(false);
             Toast.makeText(this, "Disconnected!", Toast.LENGTH_SHORT).show();
         });
     }
@@ -165,43 +144,56 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         android.os.Handler mHandler = getWindow().getDecorView().getHandler();
         mHandler.post(() ->
-        {
-            Toast.makeText(this, "temp = " + temperature, Toast.LENGTH_SHORT).show();
-        });
+                m_temperatureText.setText(temperature));
     }
 
     @Override
     public void setTime(Calendar timeAsync)
     {
-
+        android.os.Handler mHandler = getWindow().getDecorView().getHandler();
+        mHandler.post(() ->
+                m_dateTimeText.setText(timeAsync.toString()));
     }
 
     @Override
-    public void setValves(ValveOptionsData[] valvesAsync)
-    {
-
-    }
+    public void setValves(ValveOptionsData[] valvesAsync) { }
+    @Override
+    public void setErrors(Error[] errors) { }
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        mainActivity = this;
+
+        try
+        {
+            m_saveFile = new SaveFile(SAVE_FILE_NAME, this);
+        } catch (FileNotFoundException e)
+        {
+            m_saveFile = null;
+            Toast.makeText(this, Resources.getSystem().getString(R.string.cant_open_file) + " : " + SAVE_FILE_NAME, Toast.LENGTH_SHORT).show();
+            ConsoleActivity.log(e.toString());
+        }
+
         setContentView(R.layout.activity_main);
 
-        setUpRecyclerView();
-
-        syncBluetooth = findViewById(R.id.bluetoothSync);
-        syncBluetooth.setOnClickListener(new View.OnClickListener()
+        NavigationView navView = findViewById(R.id.nav_view);
+        MenuItem addButton = navView.getMenu().findItem(R.id.add_valve);
+        navView.setNavigationItemSelectedListener(new NavigationItemSelectedListener<>(this, m_saveFile, addButton));
+        View headerView = navView.getHeaderView(0);
+        m_getTempButton = headerView.findViewById(R.id.getTempButton);
+        m_getTempButton.setOnClickListener((View V) ->
         {
-            @Override
-            public void onClick(View v)
-            {
-                ArduinoComms.sendValves(ValveGroup.groups.get(0));
-                Toast.makeText(mainActivity, "Sending...", Toast.LENGTH_SHORT).show();
-            }
+            ArduinoComms.getTempFloat();
+            ArduinoComms.getTime();
         });
-        syncBluetooth.setEnabled(false);
+        m_getTempButton.setEnabled(false);
+
+        m_temperatureText   = headerView.findViewById(R.id.temperatureValue);
+        m_dateTimeText      = headerView.findViewById(R.id.timeValue);
+
+
+        setUpRecyclerView();
     }
 
     @Override
@@ -210,59 +202,24 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
         super.onStart();
 
         //read saved data
-        m_loadFileThread = new Thread(() ->
-        {
-            ArrayList<ValveOptionsData> newData = null;
-            try (FileInputStream fileInputStream = openFileInput(SAVE_FILE_NAME))
-            {
-                newData = readDataFromFile(fileInputStream);
-            } catch (IOException e)
-            {
-                Log.e("Read from disk: ", e.toString());
-            } finally
-            {
-                synchronized (m_loadFileThread)
-                {
-                    try
-                    {
-                        if (!m_isResumeExecuted)
-                            m_loadFileThread.wait();
-                    } catch (InterruptedException e)
-                    {
-                        e.printStackTrace();
-                    } finally
-                    {
-                        ((IComm) mainActivity).changeDataSet(newData);
-                    }
-                }
-            }
-
-        }, "File loader thread");
-        m_loadFileThread.start();
-
+        m_saveFile.read();
+        //TODO notify us that we have read the data, but make sure not to do it while we are paused
         ArduinoComms.registerListener(this);
+        ArduinoComms.registerListener(m_saveFile);
     }
 
     @Override
     protected void onResume()
     {
         super.onResume();
-        synchronized (m_loadFileThread)
-        {
-            m_isResumeExecuted = true;
-            m_loadFileThread.notify();
-        }
-        //fromByte bluetooth stuff done
+        m_valveGroups = m_saveFile.getGroups();
+        //get bluetooth stuff done
     }
 
     @Override
     protected void onPause()
     {
         super.onPause();
-        synchronized (m_loadFileThread)
-        {
-            m_isResumeExecuted = false;
-        }
         //release bluetooth stuff
         //ArduinoComms.disconnect();
     }
@@ -273,76 +230,9 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
         super.onStop();
 
         //save stuff
-        Thread saveData = new Thread(() ->
-        {
-            try (FileOutputStream fileOutputStream = openFileOutput(SAVE_FILE_NAME, MODE_PRIVATE))
-            {
-                //TODO change  write to file method to accept the data
-                writeDataToFile(fileOutputStream);
-            } catch (IOException e)
-            {
-                Log.w("write: ", e);
-            }
-        });
-        saveData.start();
+        m_saveFile.saveData();
         ArduinoComms.unregisterListener(this);
-    }
-
-    private void writeDataToFile(FileOutputStream fileOutputStream) throws IOException
-    {
-        JSONObject object = new JSONObject();
-        JSONArray arr = new JSONArray();
-        try
-        {
-            JSONObject group0 = ValveGroup.groups.get(0).toJson();
-            arr.put(group0);
-            object.put(VERSION_STRING, VERSION_NUMBER);
-            object.put(ARRAY_OF_VALVE_GROUPS_STRING, arr);
-
-        } catch (JSONException e)
-        {
-            e.printStackTrace();
-        }
-
-        byte[] objBytes = object.toString().getBytes();
-        fileOutputStream.write(objBytes);
-    }
-
-    private ArrayList<ValveOptionsData> readDataFromFile(FileInputStream fileInputStream) throws IOException
-    {
-        int availableBytes = fileInputStream.available();
-        byte[] inStream;
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(availableBytes);
-        while (availableBytes > 0)
-        {
-            inStream = new byte[availableBytes];
-            fileInputStream.read(inStream);
-            outputStream.write(inStream);
-
-            availableBytes = fileInputStream.available();
-        }
-
-        try
-        {
-            String jsonString = new String(outputStream.toByteArray());
-            JSONObject obj = new JSONObject(jsonString);
-            int version = obj.getInt(VERSION_STRING);
-            if (version != VERSION_NUMBER)
-            {
-                Toast.makeText(this, "Save file version mismatch!", Toast.LENGTH_SHORT).show();
-            }
-            JSONArray valveObjectGroups = obj.getJSONArray(ARRAY_OF_VALVE_GROUPS_STRING);
-            ValveGroup.groups.clear();
-            for (int i = 0; i < valveObjectGroups.length(); i++)
-            {
-                ValveGroup.groups.add(new ValveGroup(valveObjectGroups.getJSONObject(i)));
-            }
-        } catch (JSONException e)
-        {
-            e.printStackTrace();
-        }
-
-        return ValveGroup.groups.get(0).getValveOptionDataCollection();
+        ArduinoComms.unregisterListener(m_saveFile);
     }
 
     void notifyItemChanged(final int pos, final Job job)
@@ -375,8 +265,8 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     @Override
     public void addItem(ValveOptionsData item)
     {
-        ValveGroup.groups.get(0).addValveOptionData(item);
-        notifyItemChanged(ValveGroup.groups.get(0).getValveOptionDataCollection().size() - 1, Job.ADD_ITEM);
+        m_valveGroups.get().add(item);
+        notifyItemChanged(m_valveGroups.get().size() - 1, Job.ADD_ITEM);
     }
 
     @Override
@@ -385,7 +275,8 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
 
-        ValveGroup.groups.get(0).removeValveOptionData(viewHolderPosition);
+        m_valveGroups.get().get(viewHolderPosition);
+        //ValveGroup.groups.get(0).removeValveOptionData(viewHolderPosition);
         notifyItemChanged(viewHolderPosition, Job.REMOVE_ITEM);
     }
 
@@ -394,7 +285,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = m_valveGroups.get().get(viewHolderPosition);
         if (data == null)
             return;
 
@@ -407,7 +298,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = m_valveGroups.get().get(viewHolderPosition);
         if (data == null)
             return;
         data.setTimeCountdown(timeCountdown);
@@ -419,7 +310,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = m_valveGroups.get().get(viewHolderPosition);
         if (data == null)
             return;
         data.setValveNumber(num);
@@ -431,20 +322,20 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = m_valveGroups.get().get(viewHolderPosition);
         if (data == null)
             return;
         data.setValveName(name);
 
         notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
-
+/*
     @Override
     public void setValveDayOn(boolean[] days, int viewHolderPosition)
     {
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
+        ValveOptionsData data =m_valveGroups.get().getValveOptionData(viewHolderPosition);
         if (data == null)
             return;
         data.setRepeatDay(days);
@@ -457,7 +348,7 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = m_valveGroups.get().getValveOptionData(viewHolderPosition);
         if (data == null)
             return;
         data.setRepeatDay(value, day);
@@ -470,28 +361,69 @@ public class MainActivity extends AppCompatActivity implements IComm, IBluetooth
     {
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-        ValveOptionsData data = ValveGroup.groups.get(0).getValveOptionData(viewHolderPosition);
+        ValveOptionsData data = m_valveGroups.get().getValveOptionData(viewHolderPosition);
         if (data == null)
             return;
         data.setMasterSwitch(value);
 
-        notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
+        notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);//TODO doesn't mean that the recycler view is displaying this list currently
+    }
+*/
+    @Override
+    public void displayToast(String text, int length)
+    {
+        Toast.makeText(this, text, length).show();
     }
 
     @Override
-    public void changeDataSet(ArrayList<ValveOptionsData> data)
+    public void setGroupPercent(int newPercent, int adapterPosition)
     {
-        if (data == null || data.size() < 1)
-        {
-            return;
-        }
-        MainActivity.this.runOnUiThread(() ->
-        {
-            ValveGroup.groups.get(0).setValveOptionDataCollection(data);
-            m_RecyclerView.swapAdapter(new ValveOptionAdapter(data, this), false);
-        });
+        m_saveFile.getGroups().get(adapterPosition).setPercent(newPercent);
+    }
+
+    @Override
+    public void sendValves()
+    {
 
     }
+
+    @Override
+    public void setAdapter(RecyclerView.Adapter adapter)
+    {
+
+        m_RecyclerView.setAdapter(adapter);
+        LinearLayoutManager linearLayout = new LinearLayoutManager(this);
+        linearLayout.setOrientation(LinearLayoutManager.VERTICAL);
+        m_RecyclerView.setLayoutManager(linearLayout);
+
+        DividerItemDecoration decoration = new DividerItemDecoration(this, linearLayout.getOrientation());
+        m_RecyclerView.addItemDecoration(decoration);
+        ((DefaultItemAnimator) m_RecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
+        m_RecyclerView.getAdapter().notifyDataSetChanged();
+    }
+
+    @Override
+    public void showTemperature()
+    {
+
+    }
+
+    @Override
+    public void showAlertDialog(int messageID)
+    {
+        Dialogs.MyAlertDialog alert = new Dialogs.MyAlertDialog();
+        Bundle args = new Bundle();
+        args.putInt(Dialogs.MyAlertDialog.MESSAGE_ID_KEY, messageID);
+        alert.setArguments(args);
+        alert.show(getFragmentManager(), "alert");
+    }
+
+    @Override
+    public void doOnUiThread(Runnable r)
+    {
+        runOnUiThread(r);
+    }
+
 
     private enum Job
     {

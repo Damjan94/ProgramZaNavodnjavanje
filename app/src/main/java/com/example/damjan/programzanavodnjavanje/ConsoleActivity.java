@@ -8,8 +8,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.example.damjan.programzanavodnjavanje.bluetooth.ArduinoComms;
-import com.example.damjan.programzanavodnjavanje.bluetooth.IBluetoothComms;
+import com.example.damjan.programzanavodnjavanje.data.Error;
+import com.example.damjan.programzanavodnjavanje.data.bluetooth.ArduinoComms;
+import com.example.damjan.programzanavodnjavanje.data.bluetooth.IBluetoothComms;
 import com.example.damjan.programzanavodnjavanje.data.MyCalendar;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
@@ -54,9 +55,7 @@ public class ConsoleActivity extends AppCompatActivity implements IBluetoothComm
         EditText sendCommand = findViewById(R.id.consoleTextInput);
         Button refresh = findViewById(R.id.consoleButton);
         refresh.setOnClickListener(v ->
-        {
-            handleCommand(new String[]{sendCommand.getText().toString()});
-        });
+                handleCommand(new String[]{sendCommand.getText().toString()}));
         refresh.setOnLongClickListener(v ->
         {
             LOG.delete(0, LOG.length());
@@ -68,39 +67,41 @@ public class ConsoleActivity extends AppCompatActivity implements IBluetoothComm
 
     private void handleCommand(String[] commands)
     {
-        if (commands[0].equals("valves read"))
+        switch (commands[0])
         {
-            ArduinoComms.getValves();
-        } else if (commands[0].equals("temp read"))
-        {
-            ArduinoComms.getTempFloat();
-        } else if (commands[0].equals("time read"))
-        {
-            ArduinoComms.getTime();
-        } else if (commands[0].equals("time send"))
-        {
-            final String PATTERN = "yyyy MM dd HH:mm";
-            MyCalendar cal = new MyCalendar();
-            cal.setFirstDayOfWeek(Calendar.SUNDAY);
-            if (commands.length > 1)
-            {
-                SimpleDateFormat sdf = new SimpleDateFormat(PATTERN, Locale.ENGLISH);
-                try
+            case "valves read":
+                ArduinoComms.getValves();
+                break;
+            case "temp read":
+                ArduinoComms.getTempFloat();
+                break;
+            case "time read":
+                ArduinoComms.getTime();
+                break;
+            case "time send":
+                final String PATTERN = "yyyy MM dd HH:mm";
+                MyCalendar cal = new MyCalendar();
+                cal.setFirstDayOfWeek(Calendar.SUNDAY);
+                if (commands.length > 1)
                 {
-                    cal.setTime(sdf.parse(commands[1]));// all done
-                } catch (ParseException e)
-                {
-                    log("failed to parse date. The format should be ascii, with pattern " + PATTERN + '\n' +
-                            "got " + commands[1] + '\n');
+                    SimpleDateFormat sdf = new SimpleDateFormat(PATTERN, Locale.ENGLISH);
+                    try
+                    {
+                        cal.setTime(sdf.parse(commands[1]));// all done
+                    } catch (ParseException e)
+                    {
+                        log("failed to parse date. The format should be ascii, with pattern " + PATTERN + '\n' +
+                                "got " + commands[1] + '\n');
+                    }
                 }
-            }
-            ArduinoComms.sendTime(cal);
-        } else if (commands[0].equals("hbridge read"))
-        {
-            ArduinoComms.getHBridgePin();
-        } else
-        {
-            log("unknown command: \"" + commands[0] + '"');
+                ArduinoComms.sendTime(cal);
+                break;
+            case "hbridge read":
+                ArduinoComms.getHBridgePin();
+                break;
+            default:
+                log("unknown command: \"" + commands[0] + '"');
+                break;
         }
     }
 
@@ -149,6 +150,15 @@ public class ConsoleActivity extends AppCompatActivity implements IBluetoothComm
         for (ValveOptionsData valve : valves)
         {
             log(valve.toString());
+        }
+    }
+
+    @Override
+    public void setErrors(Error[] errors)
+    {
+        for (Error e: errors)
+        {
+            log(e.toString());
         }
     }
 }

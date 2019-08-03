@@ -5,57 +5,45 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
-public class ValveGroup implements JsonSerializable
+public class ValveGroup extends ArrayList<ValveOptionsData> implements JsonSerializable
 {
+    private static final String GROUP_NAME  = "GroupName";
+    private static final String PERCENT     = "Percent";
+    private static final String STATUS      = "Is on";
 
+    //private ArrayList<ValveOptionsData> m_valveOptionDataList;
+    private String  m_groupName;
+    private int m_percent;
+    private boolean m_isOn;
 
-    private static final String GROUP_NAME = "GroupName";
-    private static final String PERCENT = "Percent";
-    public static ArrayList<ValveGroup> groups = new ArrayList<>();
-
-    static
+    public ValveGroup(String name, int percentage)
     {
-        groups.add(new ValveGroup());
+        this(name, percentage, new ArrayList<>());
     }
-
-    private ArrayList<ValveOptionsData> m_valveOptionDataList = new ArrayList<>();
-    private String m_groupName = "Group0";
-    private int m_percentage = 100;
-
-    public ValveGroup()
+    public ValveGroup(String name)
     {
-
+        this(name, 100);
     }
 
     public ValveGroup(JSONObject obj) throws JSONException
     {
+        this("");
         fromJSON(obj);
     }
 
-    public ArrayList<ValveOptionsData> getValveOptionDataCollection()
+    public ValveGroup(String name, ValveOptionsData[] valves)
     {
-        return m_valveOptionDataList;
+        this(name, 100, new ArrayList<>(Arrays.asList(valves)));
     }
 
-    public void setValveOptionDataCollection(ArrayList<ValveOptionsData> dataList)
+    public ValveGroup(String name, int percentage, ArrayList<ValveOptionsData> valves)
     {
-        m_valveOptionDataList = dataList;
-    }
-
-    public ValveOptionsData getValveOptionData(int pos)
-    {
-        return m_valveOptionDataList.get(pos);
-    }
-
-    public void addValveOptionData(ValveOptionsData data)
-    {
-        m_valveOptionDataList.add(data);
-    }
-
-    public void removeValveOptionData(int pos)
-    {
-        m_valveOptionDataList.remove(pos);
+        super(valves);
+        m_groupName             = name;
+        m_percent               = percentage;
+        m_isOn                  = true;
     }
 
     @Override
@@ -63,8 +51,10 @@ public class ValveGroup implements JsonSerializable
     {
         JSONObject obj = new JSONObject();
         obj.put(GROUP_NAME, m_groupName);
+        obj.put(PERCENT, m_percent);
+        obj.put(STATUS, m_isOn);
         JSONArray arr = new JSONArray();
-        for (ValveOptionsData data : m_valveOptionDataList)
+        for (ValveOptionsData data : this)
         {
             arr.put(data.toJson());
         }
@@ -75,33 +65,22 @@ public class ValveGroup implements JsonSerializable
     @Override
     final public void fromJSON(JSONObject jsonIn) throws JSONException
     {
-        m_groupName = (String) jsonIn.get(GROUP_NAME);
-        m_valveOptionDataList.clear();
+        m_groupName     = jsonIn.getString(GROUP_NAME);
+        m_percent       = jsonIn.getInt(PERCENT);
+        m_isOn          = jsonIn.getBoolean(STATUS);
+        this.clear();
         JSONArray arr = jsonIn.getJSONArray(m_groupName);
         for (int i = 0; i < arr.length(); i++)
         {
-            m_valveOptionDataList.add(new ValveOptionsData((JSONObject) arr.get(i)));
+            this.add(new ValveOptionsData((JSONObject) arr.get(i)));
         }
     }
-/*
-	@Override
-	public byte[] toArduinoBytes()
-	{
-		int bufferSize = m_valveOptionDataList.size() * ValveOptionsData.NETWORK_SIZE;
-		byte[] bytes = new byte[bufferSize];
 
-		for(int i = 0; i < bufferSize; i += ValveOptionsData.NETWORK_SIZE)
-		{
-			System.arraycopy((m_valveOptionDataList.get(i/ValveOptionsData.NETWORK_SIZE).toArduinoBytes()), 0,
-					bytes, i, ValveOptionsData.NETWORK_SIZE);
-		}
+    public String  getGroupName()  { return m_groupName; }
+    public int     getPercent() { return m_percent;}
+    public boolean getStatus()     { return m_isOn; }
 
-		return bytes;
-	}
-
-	@Override
-	final public void fromArduinoBytes(byte[] bytes, long crc32)
-	{
-		throw new UnsupportedOperationException();
-	}*/
+    public void setGroupName(String newName) { m_groupName = newName; }
+    public void setPercent(int newPercent) { m_percent = newPercent; }
+    public void setStatus(boolean newStatus) { m_isOn = newStatus ; }
 }

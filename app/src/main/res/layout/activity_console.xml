@@ -34,7 +34,7 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="0.1"
-            android:text="E" />
+            android:text="@string/send_command" />
     </LinearLayout>
 
 </LinearLayout>

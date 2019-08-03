@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/fragment_valve_top"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/textViewName"
+        android:layout_width="0sp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.8"
+        android:text="@string/valve_name"
+        android:textSize="22sp" />
+
+    <TextView
+        android:id="@+id/textViewNumber"
+        android:layout_width="0sp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.2"
+        android:text="@string/valve_number"
+        android:textSize="22sp" />
+
+</LinearLayout>

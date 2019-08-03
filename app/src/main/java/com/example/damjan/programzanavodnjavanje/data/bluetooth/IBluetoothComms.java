@@ -1,5 +1,6 @@
-package com.example.damjan.programzanavodnjavanje.bluetooth;
+package com.example.damjan.programzanavodnjavanje.data.bluetooth;
 
+import com.example.damjan.programzanavodnjavanje.data.Error;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
 import java.util.Calendar;
@@ -22,6 +23,7 @@ public interface IBluetoothComms
 
     void setValves(ValveOptionsData[] valves);
 
+    void setErrors(Error[] errors);
 }
 
 
@@ -74,7 +76,7 @@ public interface IBluetoothComms
 	@Override
 	public void run()
 	{
-		((IComm)(MainActivity.mainActivity)).enableSendButton();
+		((ISetValveData)(MainActivity.mainActivity)).enableSendButton();
 		while(true)
 		{
 			byte[] buffer = new byte[MAX_BUFFER_SIZE];

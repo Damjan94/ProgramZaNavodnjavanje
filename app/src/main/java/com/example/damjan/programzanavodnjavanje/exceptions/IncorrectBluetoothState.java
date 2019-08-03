@@ -1,4 +1,4 @@
-package com.example.damjan.programzanavodnjavanje.Exceptions;
+package com.example.damjan.programzanavodnjavanje.exceptions;
 
 public class IncorrectBluetoothState extends Exception
 {

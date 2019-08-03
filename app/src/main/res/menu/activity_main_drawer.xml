@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent">
+
+    <group android:id="@+id/add_group">
+        <item android:id="@+id/add_valve"
+            android:title="@string/add_valve"/>
+    </group>
+
+    <group android:id="@+id/bluetooth_group">
+        <item android:id="@+id/sync_bluetooth"
+            android:title="@string/sync_bluetooth"
+            android:enabled="false"/>
+        <item android:id="@+id/connect_bluetooth"
+            android:title="@string/connect_bluetooth"
+            android:checkable="true"/>
+    </group>
+
+    <group android:id="@+id/valve_group">
+        <item
+            android:title="@string/valve_groups"
+            android:id="@+id/show_valve_groups"
+            android:checkable="true"/>
+        <item
+            android:title="@string/show_valves"
+            android:id="@+id/show_valves"
+            android:checkable="true"/>
+        <item
+            android:title="@string/show_errors"
+            android:id="@+id/show_errors"
+            android:checkable="true"/>
+    </group>
+
+</menu>

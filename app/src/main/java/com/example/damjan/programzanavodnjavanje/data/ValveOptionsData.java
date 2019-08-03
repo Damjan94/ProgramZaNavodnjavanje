@@ -1,8 +1,10 @@
 package com.example.damjan.programzanavodnjavanje.data;
 
-import com.example.damjan.programzanavodnjavanje.MainActivity;
+
+import android.content.res.Resources;
+
 import com.example.damjan.programzanavodnjavanje.R;
-import com.example.damjan.programzanavodnjavanje.bluetooth.Message;
+import com.example.damjan.programzanavodnjavanje.data.bluetooth.Message;
 import com.example.damjan.programzanavodnjavanje.utility.Network;
 
 import org.json.JSONArray;
@@ -40,10 +42,10 @@ public class ValveOptionsData implements JsonSerializable, NetworkSerializable
 
     private boolean[] m_repeatDays;
 
-    public ValveOptionsData()
+    public ValveOptionsData(String name)
     {
         this(
-                MainActivity.mainActivity.getResources().getString(R.string.valve) + staticId,
+                name + staticId,
                 (byte) staticId,
                 (byte) 0,
                 (byte) 0,

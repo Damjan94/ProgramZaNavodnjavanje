@@ -8,32 +8,7 @@
     android:paddingBottom="10dp"
     android:paddingTop="10dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingEnd="10dp"
-        android:paddingStart="10dp">
-
-        <TextView
-            android:id="@+id/textViewValveName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingEnd="15dp"
-            android:paddingStart="15dp"
-            android:text="@string/valve_name"
-            android:textSize="22sp" />
-
-        <TextView
-            android:id="@+id/textViewValveNumber"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingEnd="15dp"
-            android:paddingStart="15dp"
-            android:text="@string/valve_number"
-            android:textSize="22sp" />
-
-    </LinearLayout>
+    <include layout="@layout/fragment_valve_top"/>
 
     <LinearLayout
         android:id="@+id/linearLayoutInfo"
@@ -218,18 +193,6 @@
 
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingEnd="10dp"
-        android:paddingStart="10dp">
+    <include layout="@layout/fragment_valve_bottom"/>
 
-        <Switch
-            android:id="@+id/switchMaster"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.3" />
-
-    </LinearLayout>
 </LinearLayout>

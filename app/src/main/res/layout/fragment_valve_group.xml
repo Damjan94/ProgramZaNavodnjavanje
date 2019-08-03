@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="5sp">
+
+    <include layout="@layout/fragment_valve_top"/>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <android.support.v7.widget.AppCompatTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:text="@string/valves_in_this_group"/>
+        <android.support.v7.widget.AppCompatTextView
+            android:layout_width="0sp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="22sp"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <android.support.v7.widget.AppCompatSeekBar
+            android:id="@+id/valve_group_seekBar"
+            android:max="100"
+            android:layout_width="0sp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.8"/>
+        <android.support.v7.widget.AppCompatTextView
+            android:id="@+id/valve_group_textView"
+            android:layout_width="0sp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.1"
+            android:textSize="22sp"/>
+    </LinearLayout>
+
+    <include layout="@layout/fragment_valve_bottom"/>
+
+</LinearLayout>

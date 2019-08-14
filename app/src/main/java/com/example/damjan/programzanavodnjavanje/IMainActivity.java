@@ -8,6 +8,7 @@ public interface IMainActivity
     void sendValves();
 
     void setAdapter(RecyclerView.Adapter adapter);
+    void adapterItemChanged(int pos);
 
     void showTemperature();
 

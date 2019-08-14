@@ -42,8 +42,8 @@ public class SaveFile implements JsonSerializable, IFileListener, IBluetoothComm
     public SaveFile(@NonNull String safeFileName,@NonNull Context mainActivity) throws FileNotFoundException
     {
         m_fileOperations            = new PrivateFileOperations(safeFileName, mainActivity, new IFileListener[]{this});
-        m_wasLastWriteSuccessful    = true;
-        m_wasLastReadSuccessful     = true;
+        m_wasLastWriteSuccessful    = false;
+        m_wasLastReadSuccessful     = false;
         m_savedData                 = null;
         m_errors                    = null;
         m_arduinoValves             = null;
@@ -91,7 +91,7 @@ public class SaveFile implements JsonSerializable, IFileListener, IBluetoothComm
     @Override
     public void doneReading(@Nullable byte[] fileContents, boolean status)
     {
-        m_wasLastReadSuccessful = status;
+        m_wasLastReadSuccessful = false;
         if(!status || fileContents == null)
         {
             m_savedData     = new ValveGroups();
@@ -102,6 +102,7 @@ public class SaveFile implements JsonSerializable, IFileListener, IBluetoothComm
         try
         {
             fromJSON(new JSONObject(new String(fileContents)));
+            m_wasLastReadSuccessful = true;
         } catch (JSONException e)
         {
             m_wasLastReadSuccessful = false;
@@ -134,7 +135,7 @@ public class SaveFile implements JsonSerializable, IFileListener, IBluetoothComm
         m_fileOperations.readAsync();
     }
 
-    public ValveGroups getGroups()
+    public @NonNull ValveGroups getGroups()
     {
         return m_savedData;
     }

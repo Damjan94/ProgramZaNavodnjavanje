@@ -46,7 +46,7 @@
     <string name="show_errors">Show errors</string>
     <string name="cant_open_file">Can\'t open the file</string>
     <string name="cant_save">Can\'t save data</string>
-    <string name="valves_in_this_group">Valves in this group</string>
+    <string name="valves_in_this_group">Valves in this group:</string>
     <string name="show_valves">Show valves</string>
     <string name="valve_group_name">Valve group name</string>
     <string name="get_temperature_and_time_from_arduino">Get\'s temperature and time from arduino</string>
@@ -54,5 +54,6 @@
     <string name="temperature">Temperature</string>
     <string name="default_alert_message">Alert!</string>
     <string name="show_valves_error">Can\'t show valves (did you select a valve group?)</string>
-    <string name="show_valves_add_error">Can\'t add valve (did you select a valve group?)</string>
+    <string name="cant_add_valve_error">Can\'t add valve (did you select a valve group?)</string>
+    <string name="press_one_time_to_exit">Press back one more time to exit</string>
 </resources>

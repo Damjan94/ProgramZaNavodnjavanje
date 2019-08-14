@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/add_valve"
+        android:title="@string/add_valve"
+        android:icon="@drawable/ic_add_circle_outline_black_24dp"
+        app:showAsAction="always"/>
+
     <group>
     <item
         android:title="@string/disconnect"
@@ -15,6 +21,6 @@
         android:checkable="true"/>
     <item
         android:title="@string/console_mode"
-        android:id="@+id/consoleModeButton"/>
+        android:id="@+id/console_mode_button"/>
     </group>
 </menu>

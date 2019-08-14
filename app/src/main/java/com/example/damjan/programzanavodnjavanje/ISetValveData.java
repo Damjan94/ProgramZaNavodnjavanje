@@ -19,5 +19,7 @@ public interface ISetValveData
     void removeItem(int viewHolderPosition);
     void addItem(ValveOptionsData item);
 
+    void groupSelected(int gropuPos);
+
     //void dataChanged(int adapterPosition);
 }

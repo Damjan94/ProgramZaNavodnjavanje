@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.example.damjan.programzanavodnjavanje.ISetValveData;
 import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.file.SaveFile;
@@ -17,14 +18,13 @@ import com.example.damjan.programzanavodnjavanje.viewHolders.ValveGroupViewHolde
 
 import java.util.ArrayList;
 
-public class ValveGroupAdapter extends RecyclerView.Adapter<ValveGroupViewHolder>
+public class ValveGroupAdapter<T extends Activity & ISetValveData> extends RecyclerView.Adapter<ValveGroupViewHolder>
 {
-
-    private final Activity          m_activity;
+    private final T                 m_activity;
     private ArrayList<ValveGroup>   m_valveGroupArray;
     private SaveFile                m_saveFile;
 
-    public ValveGroupAdapter(ArrayList<ValveGroup> valveGroupArray, Activity activity, SaveFile saveFile)
+    public ValveGroupAdapter(ArrayList<ValveGroup> valveGroupArray, T activity, SaveFile saveFile)
     {
         m_valveGroupArray   = valveGroupArray;
         m_activity          = activity;
@@ -48,11 +48,12 @@ public class ValveGroupAdapter extends RecyclerView.Adapter<ValveGroupViewHolder
     {
         holder.setListener(new ValveGroupListener(m_activity, holder, m_saveFile));
         holder.updateUI(m_valveGroupArray.get(position));
+
     }
 
     @Override
     public int getItemCount()
     {
-        return 0;
+        return m_valveGroupArray.size();
     }
 }

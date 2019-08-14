@@ -3,6 +3,7 @@ package com.example.damjan.programzanavodnjavanje;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.design.widget.NavigationView;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.damjan.programzanavodnjavanje.data.Error;
+import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.ValveGroups;
 import com.example.damjan.programzanavodnjavanje.data.bluetooth.ArduinoComms;
 import com.example.damjan.programzanavodnjavanje.data.bluetooth.IBluetoothComms;
@@ -32,16 +34,23 @@ import java.util.Calendar;
 public class MainActivity extends AppCompatActivity implements ISetValveData, IBluetoothComms, IMainActivity
 {
     private final static String SAVE_FILE_NAME = "my_file.json";
-    private final static String ARRAY_OF_VALVE_GROUPS_STRING = "ArrayOfValveGroups";
 
     private SaveFile        m_saveFile;
-    private ValveGroups     m_valveGroups;//TODO Delete this
 
     private RecyclerView    m_RecyclerView;
 
+    private Menu            m_drawerMenu;
     private ImageButton     m_getTempButton;
+    private MenuItem        m_connectBluetooth;
+    private MenuItem        m_syncBluetooth;
+
     private TextView        m_temperatureText;
     private TextView        m_dateTimeText;
+
+    private TextView        m_selectedGroupName;
+
+    private static int m_backPresses = 0;
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -55,6 +64,27 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     {
         switch (item.getItemId())
         {
+            case R.id.add_valve:
+            {
+                if(m_saveFile.getGroups().selectedGroup != ValveGroups.INVALID_SELECTED_GROUP)
+                {
+                        ValveGroup selectedGroup = m_saveFile.getGroups().get();
+                        if(selectedGroup != null)
+                        {
+                            selectedGroup.add(new ValveOptionsData(getString(R.string.valve)));
+                            m_RecyclerView.getAdapter().notifyItemInserted(selectedGroup.size() -1);
+                        }
+                        else
+                            showAlertDialog(R.string.cant_add_valve_error);
+                }else
+                {
+                    m_saveFile.getGroups().add(new ValveGroup("New Group"));
+                    m_RecyclerView.getAdapter().notifyItemInserted(m_saveFile.getGroups().size() -1);
+                }
+                //TODO notify recycler view that we have added another item
+
+                break;
+            }
             case R.id.disconnect:
             {
                 ArduinoComms.disconnect();
@@ -70,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
                 //TODO change recycler view to display the valves that are currently on the arduino
                 throw new UnsupportedOperationException();
             }
-            case R.id.consoleModeButton:
+            case R.id.console_mode_button:
             {
                 Intent i = new Intent(this, ConsoleActivity.class);
                 startActivity(i);
@@ -89,14 +119,13 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
         m_RecyclerView = findViewById(R.id.mainFragmentHolder);
         m_RecyclerView.setHasFixedSize(true);
 
-//        LinearLayoutManager linearLayout = new LinearLayoutManager(this);
-//        linearLayout.setOrientation(LinearLayoutManager.VERTICAL);
-//        m_RecyclerView.setLayoutManager(linearLayout);
-//
-//        DividerItemDecoration decoration = new DividerItemDecoration(this, linearLayout.getOrientation());
-//        m_RecyclerView.addItemDecoration(decoration);
-//        ((DefaultItemAnimator) m_RecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
-//        //m_RecyclerView.getAdapter().notifyDataSetChanged();
+        LinearLayoutManager linearLayout = new LinearLayoutManager(this);
+        linearLayout.setOrientation(LinearLayoutManager.VERTICAL);
+        m_RecyclerView.setLayoutManager(linearLayout);
+
+        DividerItemDecoration decoration = new DividerItemDecoration(this, linearLayout.getOrientation());
+        m_RecyclerView.addItemDecoration(decoration);
+        ((DefaultItemAnimator) m_RecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
     }
 
     @Override
@@ -106,8 +135,8 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
         mHandler.post(() ->
         {
             //syncBluetooth.setEnabled(true);
-            findViewById(R.id.sync_bluetooth).setEnabled(true);
-            findViewById(R.id.connect_bluetooth).setEnabled(false);
+            m_connectBluetooth.setEnabled(true);
+            m_syncBluetooth.setEnabled(false);
             m_getTempButton.setEnabled(true);
             Toast.makeText(this, "Connected!", Toast.LENGTH_SHORT).show();
         });
@@ -119,8 +148,8 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
         android.os.Handler mHandler = getWindow().getDecorView().getHandler();
         mHandler.post(() ->
         {
-            findViewById(R.id.connect_bluetooth).setEnabled(true);
-            findViewById(R.id.sync_bluetooth).setEnabled(false);
+            m_connectBluetooth.setEnabled(true);
+            m_syncBluetooth.setEnabled(false);
             m_getTempButton.setEnabled(false);
             Toast.makeText(this, "Failed to connect", Toast.LENGTH_SHORT).show();
         });
@@ -132,8 +161,8 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
         android.os.Handler mHandler = getWindow().getDecorView().getHandler();
         mHandler.post(() ->
         {
-            findViewById(R.id.connect_bluetooth).setEnabled(true);
-            findViewById(R.id.sync_bluetooth).setEnabled(false);
+            m_connectBluetooth.setEnabled(true);
+            m_syncBluetooth.setEnabled(false);
             m_getTempButton.setEnabled(false);
             Toast.makeText(this, "Disconnected!", Toast.LENGTH_SHORT).show();
         });
@@ -177,11 +206,17 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
 
         setContentView(R.layout.activity_main);
 
-        NavigationView navView = findViewById(R.id.nav_view);
-        MenuItem addButton = navView.getMenu().findItem(R.id.add_valve);
-        navView.setNavigationItemSelectedListener(new NavigationItemSelectedListener<>(this, m_saveFile, addButton));
-        View headerView = navView.getHeaderView(0);
-        m_getTempButton = headerView.findViewById(R.id.getTempButton);
+        m_selectedGroupName     = findViewById(R.id.selected_view_group_name);
+
+        NavigationView navView  = findViewById(R.id.nav_view);
+
+        m_drawerMenu            = navView.getMenu();
+        m_connectBluetooth      = m_drawerMenu.findItem(R.id.connect_bluetooth);
+        m_syncBluetooth         = m_drawerMenu.findItem(R.id.sync_bluetooth);
+
+        navView.setNavigationItemSelectedListener(new NavigationItemSelectedListener<>(this, m_saveFile));
+        View headerView         = navView.getHeaderView(0);
+        m_getTempButton         = headerView.findViewById(R.id.getTempButton);
         m_getTempButton.setOnClickListener((View V) ->
         {
             ArduinoComms.getTempFloat();
@@ -212,7 +247,19 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     protected void onResume()
     {
         super.onResume();
-        m_valveGroups = m_saveFile.getGroups();
+
+        if(m_saveFile.wasLastReadSuccessful())
+            m_drawerMenu.performIdentifierAction(R.id.show_valve_groups, 0);
+        else
+        {
+            android.os.Handler mHandler = new Handler();
+            mHandler.postAtTime(() ->
+                    {
+                        if(m_saveFile.wasLastReadSuccessful())
+                            m_drawerMenu.performIdentifierAction(R.id.show_valve_groups, 0);
+                    }, android.os.SystemClock.uptimeMillis()+1000);//delay selecting the view for 1 sec(hopefully it loads by then)
+
+        }
         //get bluetooth stuff done
     }
 
@@ -262,11 +309,30 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
         });
     }
 
+    private ValveOptionsData getValveOptionData(int viewHolderPosition)
+    {
+        if (viewHolderPosition == RecyclerView.NO_POSITION)
+            return null;
+        ValveGroup group        = m_saveFile.getGroups().get();
+        if(group == null)
+            return null;
+        ValveOptionsData data = group.get(viewHolderPosition);
+        if (data == null)
+            return null;
+        return data;
+    }
+
     @Override
     public void addItem(ValveOptionsData item)
     {
-        m_valveGroups.get().add(item);
-        notifyItemChanged(m_valveGroups.get().size() - 1, Job.ADD_ITEM);
+        ValveGroup group = m_saveFile.getGroups().get();
+        if(group == null)
+        {
+            displayToast(getString(R.string.cant_add_valve_error), Toast.LENGTH_SHORT);
+            return;
+        }
+        group.add(item);
+        notifyItemChanged(group.size() - 1, Job.ADD_ITEM);
     }
 
     @Override
@@ -274,8 +340,10 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     {
         if (viewHolderPosition == RecyclerView.NO_POSITION)
             return;
-
-        m_valveGroups.get().get(viewHolderPosition);
+        ValveGroup group = m_saveFile.getGroups().get();
+        if(group == null)
+            return;
+        group.remove(viewHolderPosition);
         //ValveGroup.groups.get(0).removeValveOptionData(viewHolderPosition);
         notifyItemChanged(viewHolderPosition, Job.REMOVE_ITEM);
     }
@@ -283,9 +351,7 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     @Override
     public void setTime(byte hour, byte minute, int viewHolderPosition)
     {
-        if (viewHolderPosition == RecyclerView.NO_POSITION)
-            return;
-        ValveOptionsData data = m_valveGroups.get().get(viewHolderPosition);
+        ValveOptionsData data   = getValveOptionData(viewHolderPosition);
         if (data == null)
             return;
 
@@ -296,11 +362,10 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     @Override
     public void setTimeCountdown(int timeCountdown, int viewHolderPosition)
     {
-        if (viewHolderPosition == RecyclerView.NO_POSITION)
-            return;
-        ValveOptionsData data = m_valveGroups.get().get(viewHolderPosition);
+        ValveOptionsData data   = getValveOptionData(viewHolderPosition);
         if (data == null)
             return;
+
         data.setTimeCountdown(timeCountdown);
         notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
@@ -308,11 +373,10 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     @Override
     public void setValveNumber(byte num, int viewHolderPosition)
     {
-        if (viewHolderPosition == RecyclerView.NO_POSITION)
-            return;
-        ValveOptionsData data = m_valveGroups.get().get(viewHolderPosition);
+        ValveOptionsData data   = getValveOptionData(viewHolderPosition);
         if (data == null)
             return;
+
         data.setValveNumber(num);
         notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
@@ -320,13 +384,21 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     @Override
     public void setValveName(String name, int viewHolderPosition)
     {
-        if (viewHolderPosition == RecyclerView.NO_POSITION)
-            return;
-        ValveOptionsData data = m_valveGroups.get().get(viewHolderPosition);
-        if (data == null)
-            return;
-        data.setValveName(name);
+        if(m_saveFile.getGroups().selectedGroup != ValveGroups.INVALID_SELECTED_GROUP)
+        {
+            ValveOptionsData data = getValveOptionData(viewHolderPosition);
+            if (data == null)
+                return;
 
+            data.setValveName(name);
+        }
+        else
+        {
+            ValveGroup group = m_saveFile.getGroups().get(viewHolderPosition);
+            if(group == null)
+                return;
+            group.setGroupName(name);
+        }
         notifyItemChanged(viewHolderPosition, Job.CHANGE_ITEM);
     }
 /*
@@ -378,7 +450,8 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     @Override
     public void setGroupPercent(int newPercent, int adapterPosition)
     {
-        m_saveFile.getGroups().get(adapterPosition).setPercent(newPercent);
+        m_saveFile.getGroups().get(adapterPosition).setPercent(Math.min(newPercent, 100));
+        adapterItemChanged(adapterPosition);
     }
 
     @Override
@@ -390,16 +463,26 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     @Override
     public void setAdapter(RecyclerView.Adapter adapter)
     {
-
         m_RecyclerView.setAdapter(adapter);
-        LinearLayoutManager linearLayout = new LinearLayoutManager(this);
-        linearLayout.setOrientation(LinearLayoutManager.VERTICAL);
-        m_RecyclerView.setLayoutManager(linearLayout);
+    }
 
-        DividerItemDecoration decoration = new DividerItemDecoration(this, linearLayout.getOrientation());
-        m_RecyclerView.addItemDecoration(decoration);
-        ((DefaultItemAnimator) m_RecyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
-        m_RecyclerView.getAdapter().notifyDataSetChanged();
+    @Override
+    public void adapterItemChanged(int pos)
+    {
+        RecyclerView.Adapter adapter = m_RecyclerView.getAdapter();
+        if(adapter != null)
+            adapter.notifyItemChanged(pos);
+    }
+
+    @Override
+    public void groupSelected(int selectedGroupPos)
+    {
+        m_saveFile.getGroups().selectedGroup = selectedGroupPos;
+        ValveGroup group = m_saveFile.getGroups().get();
+        if(group == null)
+            return;
+        m_selectedGroupName.setText(group.getGroupName());
+        m_drawerMenu.performIdentifierAction(R.id.show_valves, 0);
     }
 
     @Override
@@ -423,8 +506,31 @@ public class MainActivity extends AppCompatActivity implements ISetValveData, IB
     {
         runOnUiThread(r);
     }
-
-
+    @Override
+    public void onBackPressed()
+    {
+        if(m_saveFile.getGroups().selectedGroup >=0)
+        {
+            m_saveFile.getGroups().selectedGroup = ValveGroups.INVALID_SELECTED_GROUP;
+            m_selectedGroupName.setText("");
+            m_drawerMenu.performIdentifierAction(R.id.show_valve_groups, 0);
+        }
+        else if (m_backPresses < 1)
+        {
+            final long DELAY = 2000;
+            displayToast(getString(R.string.press_one_time_to_exit), Toast.LENGTH_SHORT);
+            m_backPresses++;
+            android.os.Handler mHandler = getWindow().getDecorView().getHandler();
+            mHandler.postAtTime(() ->
+            {
+                m_backPresses = 0;
+            }, android.os.SystemClock.uptimeMillis() + DELAY);
+        }
+        else
+        {
+            super.onBackPressed();
+        }
+    }
     private enum Job
     {
         ADD_ITEM,

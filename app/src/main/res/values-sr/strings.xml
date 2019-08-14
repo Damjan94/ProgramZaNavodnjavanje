@@ -43,5 +43,6 @@
     <string name="temperature">Температура</string>
     <string name="default_alert_message">Упозорење!</string>
     <string name="show_valves_error">Није могуће приказати вентиле (да ли си обележио групу вентила?)</string>
-    <string name="show_valves_add_error">Није могуће додати вентил (да ли си обележио групу вентила?)</string>
+    <string name="cant_add_valve_error">Није могуће додати вентил (да ли си обележио групу вентила?)</string>
+    <string name="press_one_time_to_exit">Притисните "Back" још једном да изађете</string>
 </resources>

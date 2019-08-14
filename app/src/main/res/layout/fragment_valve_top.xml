@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="0.8"
         android:text="@string/valve_name"
-        android:textSize="22sp" />
+        android:textSize="18sp" />
 
     <TextView
         android:id="@+id/textViewNumber"
@@ -19,6 +19,6 @@
         android:layout_height="wrap_content"
         android:layout_weight="0.2"
         android:text="@string/valve_number"
-        android:textSize="22sp" />
+        android:textSize="18sp" />
 
 </LinearLayout>

@@ -3,11 +3,6 @@
     android:layout_height="match_parent"
     android:layout_width="match_parent">
 
-    <group android:id="@+id/add_group">
-        <item android:id="@+id/add_valve"
-            android:title="@string/add_valve"/>
-    </group>
-
     <group android:id="@+id/bluetooth_group">
         <item android:id="@+id/sync_bluetooth"
             android:title="@string/sync_bluetooth"

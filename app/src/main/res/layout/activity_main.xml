@@ -8,11 +8,24 @@
     android:layout_height="match_parent"
     tools:openDrawer="start">
 
-    <android.support.v7.widget.RecyclerView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:id="@+id/mainFragmentHolder"
-        android:layout_weight="2"/>
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/selected_view_group_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/valve_group_name"
+            android:textSize="20sp"
+            android:gravity="center"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/mainFragmentHolder" />
+    </LinearLayout>
+
 
     <android.support.design.widget.NavigationView
         android:id="@+id/nav_view"

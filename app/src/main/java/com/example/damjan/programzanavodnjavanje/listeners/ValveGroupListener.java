@@ -6,7 +6,9 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.SeekBar;
 
+import com.example.damjan.programzanavodnjavanje.IMainActivity;
 import com.example.damjan.programzanavodnjavanje.ISetValveData;
+import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.file.SaveFile;
 import com.example.damjan.programzanavodnjavanje.utility.Dialogs;
 import com.example.damjan.programzanavodnjavanje.viewHolders.ValveGroupViewHolder;
@@ -30,7 +32,7 @@ public class ValveGroupListener implements SeekBar.OnSeekBarChangeListener, View
 	{
 		if(!fromUser) return;
 		m_saveFile.getGroups().get(m_holder.getAdapterPosition()).setPercent(progress);
-		//((ISetValveData)m_activity).dataChanged(m_holder.getAdapterPosition());
+		((IMainActivity)m_activity).adapterItemChanged(m_holder.getAdapterPosition());
 	}
 
 	@Override
@@ -48,11 +50,28 @@ public class ValveGroupListener implements SeekBar.OnSeekBarChangeListener, View
 	@Override
 	public void onClick(View v)
 	{
-		DialogFragment numPicker = new Dialogs.NumberPicker();
-		Bundle bundle = new Bundle();
-		bundle.putInt(Dialogs.POSITION, m_holder.getAdapterPosition());
-		bundle.putInt(Dialogs.FUNCTION, Dialogs.FUNCTION_UPDATE_PERCENTAGE);
-		numPicker.setArguments(bundle);
-		numPicker.show(m_activity.getFragmentManager(), "numberPicker");
+		switch (v.getId())
+		{
+			case R.id.valve_group_textView:
+			{
+				DialogFragment numPicker = new Dialogs.NumberPicker();
+				Bundle bundle = new Bundle();
+				bundle.putInt(Dialogs.POSITION, m_holder.getAdapterPosition());
+				bundle.putInt(Dialogs.FUNCTION, Dialogs.FUNCTION_UPDATE_PERCENTAGE);
+				numPicker.setArguments(bundle);
+				numPicker.show(m_activity.getFragmentManager(), "numberPicker");
+				break;
+			}
+			case R.id.valve_group_name:
+			{
+				DialogFragment namePicker = new Dialogs.NamePicker();
+				Bundle bundle = new Bundle();
+				bundle.putInt(Dialogs.POSITION, m_holder.getAdapterPosition());
+				namePicker.setArguments(bundle);
+				namePicker.show(m_activity.getFragmentManager(), "namePicker");
+				break;
+			}
+		}
+
 	}
 }

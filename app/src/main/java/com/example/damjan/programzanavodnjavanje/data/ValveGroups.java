@@ -9,10 +9,11 @@ import java.util.ArrayList;
 
 public class ValveGroups extends ArrayList<ValveGroup> implements JsonSerializable
 {
-    private final static String VALVE_GROUP_ARRAY_STRING = "valve group arrays";
+    private final static String VALVE_GROUP_ARRAY_STRING    = "valve group arrays";
 
+    public final static int INVALID_SELECTED_GROUP          = -1;
     //private ArrayList<ValveGroup> m_groupArray;
-    public int selectedGroup = -1;
+    public int selectedGroup = INVALID_SELECTED_GROUP;
 
     public ValveGroups()
     {
@@ -56,7 +57,7 @@ public class ValveGroups extends ArrayList<ValveGroup> implements JsonSerializab
 */
     public @Nullable ValveGroup get()
     {
-        return selectedGroup >=0 ? this.get(selectedGroup) : null;
+        return (selectedGroup >=0 && selectedGroup < this.size())? this.get(selectedGroup) : null;
     }
 
 }

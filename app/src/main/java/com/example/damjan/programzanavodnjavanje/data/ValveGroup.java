@@ -1,5 +1,8 @@
 package com.example.damjan.programzanavodnjavanje.data;
 
+import com.example.damjan.programzanavodnjavanje.adapters.ValveGroupAdapter;
+import com.example.damjan.programzanavodnjavanje.adapters.ValveOptionAdapter;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -13,7 +16,6 @@ public class ValveGroup extends ArrayList<ValveOptionsData> implements JsonSeria
     private static final String PERCENT     = "Percent";
     private static final String STATUS      = "Is on";
 
-    //private ArrayList<ValveOptionsData> m_valveOptionDataList;
     private String  m_groupName;
     private int m_percent;
     private boolean m_isOn;
@@ -78,7 +80,7 @@ public class ValveGroup extends ArrayList<ValveOptionsData> implements JsonSeria
 
     public String  getGroupName()  { return m_groupName; }
     public int     getPercent() { return m_percent;}
-    public boolean getStatus()     { return m_isOn; }
+    public boolean isEnabled()     { return m_isOn; }
 
     public void setGroupName(String newName) { m_groupName = newName; }
     public void setPercent(int newPercent) { m_percent = newPercent; }

@@ -8,12 +8,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.example.damjan.programzanavodnjavanje.ISetValveData;
+import com.example.damjan.programzanavodnjavanje.ActivityHelper.ISetValveData;
 import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
 import com.example.damjan.programzanavodnjavanje.data.file.SaveFile;
 import com.example.damjan.programzanavodnjavanje.listeners.ValveGroupListener;
-import com.example.damjan.programzanavodnjavanje.viewHolders.IHolder;
 import com.example.damjan.programzanavodnjavanje.viewHolders.ValveGroupViewHolder;
 
 import java.util.ArrayList;
@@ -47,7 +46,7 @@ public class ValveGroupAdapter<T extends Activity & ISetValveData> extends Recyc
     public void onBindViewHolder(@NonNull ValveGroupViewHolder holder, int position)
     {
         holder.setListener(new ValveGroupListener(m_activity, holder, m_saveFile));
-        holder.updateUI(m_valveGroupArray.get(position));
+        holder.updateUI(m_valveGroupArray.get(holder.getAdapterPosition()));
 
     }
 

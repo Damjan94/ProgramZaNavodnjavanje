@@ -22,6 +22,7 @@
     <string name="add_valve">Додај вентил</string>
     <string name="add_group">Додај групу</string>
     <string name="confirm_valve_option_delete">Обрисаћете вентил бр.:</string>
+    <string name="confirm_valve_group_delete">Обрисаћете групу вентила са именом:</string>
     <string name="valve">Вентил</string>
     <string name="console_mode">Конзола</string>
     <string name="connect_bluetooth">Закачи bluetooth</string>
@@ -45,4 +46,6 @@
     <string name="show_valves_error">Није могуће приказати вентиле (да ли си обележио групу вентила?)</string>
     <string name="cant_add_valve_error">Није могуће додати вентил (да ли си обележио групу вентила?)</string>
     <string name="press_one_time_to_exit">Притисните "Back" још једном да изађете</string>
+    <string name="new_group">Нова група</string>
+    <string name="resource_not_found">Средства нису пронађена</string>
 </resources>

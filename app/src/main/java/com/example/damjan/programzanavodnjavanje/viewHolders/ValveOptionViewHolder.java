@@ -1,6 +1,8 @@
 package com.example.damjan.programzanavodnjavanje.viewHolders;
 
 import android.app.Activity;
+import android.content.DialogInterface;
+import android.content.res.Resources;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
@@ -8,11 +10,11 @@ import android.widget.CheckBox;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import com.example.damjan.programzanavodnjavanje.ActivityHelper.HelpingHand;
 import com.example.damjan.programzanavodnjavanje.BuildConfig;
-import com.example.damjan.programzanavodnjavanje.ISetValveData;
+import com.example.damjan.programzanavodnjavanje.ActivityHelper.ISetValveData;
 import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
-import com.example.damjan.programzanavodnjavanje.listeners.ValveOptionsViewOnClick;
 
 /**
  * Created by damjan on 3/18/18.
@@ -20,15 +22,15 @@ import com.example.damjan.programzanavodnjavanje.listeners.ValveOptionsViewOnCli
 
 public class ValveOptionViewHolder extends RecyclerView.ViewHolder implements IHolder{
 	
-	private TextView m_timeView;
-	private TextView m_timeCountdown;
-	private TextView m_valveName;
-	private TextView m_valveNumber;
+	private TextView 	m_timeView;
+	private TextView 	m_timeCountdown;
+	private TextView 	m_valveName;
+	private TextView 	m_valveNumber;
 	
-	private Switch m_masterSwitch;
-	private CheckBox[] m_dayCheck;
+	private Switch 		m_masterSwitch;
+	private CheckBox[] 	m_dayCheck;
 	
-	private Activity m_activity;
+	private HelpingHand m_helper;
 	
 	public TextView getTimeView()
 	{
@@ -60,20 +62,20 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder implements IH
 		return m_dayCheck;
 	}
     
-    public ValveOptionViewHolder(View itemView, Activity activity) {
+    public ValveOptionViewHolder(View itemView, HelpingHand helper, boolean disableInteraction) {
         super(itemView);
         
-        m_activity = activity;
+        m_helper = helper;
         
 		m_masterSwitch = itemView.findViewById(R.id.switchMaster);
 		m_timeView = itemView.findViewById(R.id.textViewTime);
 		m_timeCountdown = itemView.findViewById(R.id.textViewTimeCountdown);
 
 		m_valveName = itemView.findViewById(R.id.textViewName);
-		m_valveName.setText(activity.getResources().getText(R.string.valve_name));
+		m_valveName.setText(Resources.getSystem().getText(R.string.valve_name));
 
 		m_valveNumber = itemView.findViewById(R.id.textViewNumber);
-		m_valveNumber.setText(activity.getResources().getText(R.string.valve_number));
+		m_valveNumber.setText(Resources.getSystem().getText(R.string.valve_number));
 
 		m_dayCheck = new CheckBox[]
 				{
@@ -87,20 +89,26 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder implements IH
 						
 				};
 	
-	
+		if(disableInteraction)
+		{
+			m_masterSwitch.setEnabled(false);
+			m_timeView.setEnabled(false);
+			m_timeCountdown.setEnabled(false);
+			m_valveName.setEnabled(false);
+			m_valveNumber.setEnabled(false);
+			for(CheckBox chk : m_dayCheck)
+				chk.setEnabled(false);
+			return;//don't set the long click listener
+		}
 		//TODO move this somewhere else
 		itemView.setOnLongClickListener(v -> {
-			AlertDialog.Builder alertDialog = new AlertDialog.Builder(m_activity);
-			String msg = m_activity.getResources().getString(R.string.confirm_valve_option_delete);
+			String msg = Resources.getSystem().getString(R.string.confirm_valve_option_delete);
 			msg += " "+ m_valveNumber.getText();
 			msg +=".";
-			alertDialog.setMessage(msg);
-			alertDialog.setPositiveButton(R.string.positive_response, (dialog, which) -> ((ISetValveData) m_activity).removeItem(getAdapterPosition()));
-			alertDialog.setNegativeButton(R.string.negative_response, null);
-			alertDialog.show();
+			final AlertDialog.OnClickListener listener = (dialog, which) -> m_helper.removeValve(getAdapterPosition());
+			m_helper.showAlertDialog(msg, R.string.positive_response, listener, R.string.negative_response, null);
 			return true;
 		});
-        
     }
 
     //update UI skipping any views that already have the same value
@@ -145,7 +153,7 @@ public class ValveOptionViewHolder extends RecyclerView.ViewHolder implements IH
 			this.m_valveNumber.setText(String.valueOf(valveData.getValveNumber()));
 		}
 
-		m_masterSwitch.setChecked(valveData.isMasterSwitch());
+		m_masterSwitch.setChecked(valveData.isEnabled());
         boolean[] days = valveData.getRepeatDays();
         if( BuildConfig.DEBUG &&(days.length != m_dayCheck.length))
 		{

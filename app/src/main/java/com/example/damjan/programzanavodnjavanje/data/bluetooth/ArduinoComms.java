@@ -224,7 +224,7 @@ public class ArduinoComms extends Thread
                 {
                     msg.read(inputStream);//wait for arduino to be ready to receive
                     if (msg.getType() != Message.Type.INFO || msg.getInfo() != Message.Info.READY_TO_RECEIVE)
-                        throw new RuntimeException("[ArduinoComms] Received message is not of expected Message.Type " + msg.toString());
+                        throw new RuntimeException("[ArduinoComms] Received message is not of expected Message Type\n[ArduinoComms] " + msg.toString());
                     data.toMessage().write(outputStream);
                 }
             } catch (IOException e)

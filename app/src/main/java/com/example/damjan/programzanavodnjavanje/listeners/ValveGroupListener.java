@@ -6,13 +6,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.SeekBar;
 
-import com.example.damjan.programzanavodnjavanje.IMainActivity;
-import com.example.damjan.programzanavodnjavanje.ISetValveData;
+import com.example.damjan.programzanavodnjavanje.ActivityHelper.IMainActivity;
 import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.file.SaveFile;
 import com.example.damjan.programzanavodnjavanje.utility.Dialogs;
 import com.example.damjan.programzanavodnjavanje.viewHolders.ValveGroupViewHolder;
-import com.example.damjan.programzanavodnjavanje.viewHolders.ValveOptionViewHolder;
 
 
 public class ValveGroupListener implements SeekBar.OnSeekBarChangeListener, View.OnClickListener

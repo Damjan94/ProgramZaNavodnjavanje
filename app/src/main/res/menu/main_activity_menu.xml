@@ -9,16 +9,11 @@
     <group>
     <item
         android:title="@string/disconnect"
-        android:id="@+id/disconnect"/>
+        android:id="@+id/disconnect"
+        android:enabled="false"/>
     </group>
 
     <group>
-    <item android:id="@+id/valves_to_send"
-        android:title="@string/valves_to_send"
-        android:checkable="true"/>
-    <item android:id="@+id/valves_on_arduino"
-        android:title="@string/valves_on_arduino"
-        android:checkable="true"/>
     <item
         android:title="@string/console_mode"
         android:id="@+id/console_mode_button"/>

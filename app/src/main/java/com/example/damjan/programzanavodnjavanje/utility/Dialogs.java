@@ -11,11 +11,10 @@ import android.support.v7.app.AlertDialog;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-import com.example.damjan.programzanavodnjavanje.ISetValveData;
+import com.example.damjan.programzanavodnjavanje.ActivityHelper.ISetValveData;
 import com.example.damjan.programzanavodnjavanje.R;
 
 import java.util.Calendar;
@@ -182,7 +181,10 @@ public final class Dialogs {
                         m_nameText.setError(getActivity().getString(R.string.enter_number_prompt));
                         return;
                     }
-                    m_comm.setValveName(m_nameText.getText().toString(), m_pos);
+                    if(m_pos != -1)
+                        m_comm.setValveName(m_nameText.getText().toString(), m_pos);
+                    else
+                        m_comm.setActiveGroupName(m_nameText.getText().toString());
                     //Dismiss once everything is OK.
                     dialog.dismiss();
                 });

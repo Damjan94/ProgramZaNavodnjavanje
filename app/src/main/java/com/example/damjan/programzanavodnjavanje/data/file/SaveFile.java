@@ -1,10 +1,11 @@
 package com.example.damjan.programzanavodnjavanje.data.file;
 
-import android.content.Context;
+import android.app.Activity;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.example.damjan.programzanavodnjavanje.ConsoleActivity;
+import com.example.damjan.programzanavodnjavanje.R;
 import com.example.damjan.programzanavodnjavanje.data.Error;
 import com.example.damjan.programzanavodnjavanje.data.JsonSerializable;
 import com.example.damjan.programzanavodnjavanje.data.ValveGroup;
@@ -33,17 +34,17 @@ public class SaveFile implements JsonSerializable, IFileListener, IBluetoothComm
 
     private final PrivateFileOperations m_fileOperations;
 
-    private boolean                     m_wasLastWriteSuccessful;
-    private boolean                     m_wasLastReadSuccessful;
     private ValveGroups                 m_savedData;
     private ArrayList<Error>            m_errors;
     private ValveGroup                  m_arduinoValves;
 
-    public SaveFile(@NonNull String safeFileName,@NonNull Context mainActivity) throws FileNotFoundException
+    private Activity m_activity;
+    private ArrayList<Runnable> m_doneReadingRunnable = new ArrayList<>();
+
+    public SaveFile(@NonNull String safeFileName,@NonNull Activity mainActivity) throws FileNotFoundException
     {
         m_fileOperations            = new PrivateFileOperations(safeFileName, mainActivity, new IFileListener[]{this});
-        m_wasLastWriteSuccessful    = false;
-        m_wasLastReadSuccessful     = false;
+        m_activity                  = mainActivity;
         m_savedData                 = null;
         m_errors                    = null;
         m_arduinoValves             = null;
@@ -91,32 +92,40 @@ public class SaveFile implements JsonSerializable, IFileListener, IBluetoothComm
     @Override
     public void doneReading(@Nullable byte[] fileContents, boolean status)
     {
-        m_wasLastReadSuccessful = false;
         if(!status || fileContents == null)
         {
             m_savedData     = new ValveGroups();
+            m_savedData.add(new ValveGroup(m_activity.getString(R.string.new_group)));
             m_errors        = new ArrayList<>();
             m_arduinoValves = new ValveGroup("dummy");
-            return;
         }
-        try
-        {
-            fromJSON(new JSONObject(new String(fileContents)));
-            m_wasLastReadSuccessful = true;
-        } catch (JSONException e)
-        {
-            m_wasLastReadSuccessful = false;
+        else {
+            try {
+                fromJSON(new JSONObject(new String(fileContents)));
+            } catch (JSONException e) {
+                ConsoleActivity.log(e.toString());
+            }
         }
+        if(m_savedData.size() == 1)
+            m_savedData.selectedGroup = 0;
+
+        for (Runnable run: m_doneReadingRunnable)
+        {
+            m_activity.runOnUiThread(run);
+        }
+        m_doneReadingRunnable.clear();
+    }
+
+    public void executeWhenDoneReading(Runnable r)
+    {
+        m_doneReadingRunnable.add(r);
     }
 
     @Override
     public void doneWriting(boolean status)
     {
-        m_wasLastWriteSuccessful = status;
-    }
 
-    public boolean wasLastWriteSuccessful(){return m_wasLastWriteSuccessful;}
-    public boolean wasLastReadSuccessful() {return m_wasLastReadSuccessful;}
+    }
 
     public void saveData()
     {
@@ -130,7 +139,6 @@ public class SaveFile implements JsonSerializable, IFileListener, IBluetoothComm
     }
     public void read()
     {
-
         m_savedData = null;
         m_fileOperations.readAsync();
     }
@@ -138,6 +146,33 @@ public class SaveFile implements JsonSerializable, IFileListener, IBluetoothComm
     public @NonNull ValveGroups getGroups()
     {
         return m_savedData;
+    }
+
+    public ValveGroup getValvesToSend()
+    {
+        //TODO populate the array on the new thread
+        ValveGroup valvesToSend = new ValveGroup("valves to send");
+        for(ValveGroup grp : m_savedData)
+        {
+            if(!grp.isEnabled()) continue;
+            for(ValveOptionsData data : grp)
+            {
+                if(!data.isEnabled()) continue;
+                valvesToSend.add(data);
+            }
+        }
+        return valvesToSend;
+    }
+
+    public void setArduinoValves(ValveOptionsData[] valvesAsync)
+    {
+        m_arduinoValves.clear();
+        m_arduinoValves.addAll(Arrays.asList(valvesAsync));
+    }
+
+    public ValveGroup getArduinoValves()
+    {
+        return m_arduinoValves;
     }
 
     @Override

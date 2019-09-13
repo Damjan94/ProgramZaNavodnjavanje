@@ -1,4 +1,4 @@
-package com.example.damjan.programzanavodnjavanje;
+package com.example.damjan.programzanavodnjavanje.ActivityHelper;
 
 import com.example.damjan.programzanavodnjavanje.data.ValveOptionsData;
 
@@ -14,12 +14,11 @@ public interface ISetValveData
     void setTimeCountdown(int countdownMinutes, int viewHolderPosition);
     void setValveNumber(byte num, int viewHolderPosition);
     void setValveName(String name, int viewHolderPosition);
-    void setGroupPercent(int newPercent, int adapterPosition);
 
-    void removeItem(int viewHolderPosition);
-    void addItem(ValveOptionsData item);
+    void sendValves();
 
-    void groupSelected(int gropuPos);
+    void removeValve(int viewHolderPosition);
 
-    //void dataChanged(int adapterPosition);
+    void addValve(ValveOptionsData item);
+
 }

@@ -45,8 +45,8 @@ public class ValveOptionsData implements JsonSerializable, NetworkSerializable
     public ValveOptionsData(String name)
     {
         this(
-                name + staticId,
-                (byte) staticId,
+                name + (staticId % 8 + 5),
+                (byte) (staticId % 8 + 5),
                 (byte) 0,
                 (byte) 0,
                 0,
@@ -214,7 +214,7 @@ public class ValveOptionsData implements JsonSerializable, NetworkSerializable
         return m_repeatDays;
     }
 
-    public boolean isMasterSwitch()
+    public boolean isEnabled()
     {
         return m_masterSwitch;
     }

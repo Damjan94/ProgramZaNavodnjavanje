@@ -9,22 +9,23 @@
             android:enabled="false"/>
         <item android:id="@+id/connect_bluetooth"
             android:title="@string/connect_bluetooth"
-            android:checkable="true"/>
+            android:checkable="true"
+            android:enabled="true"/>
     </group>
 
     <group android:id="@+id/valve_group">
-        <item
-            android:title="@string/valve_groups"
-            android:id="@+id/show_valve_groups"
+        <item android:id="@+id/valves_to_send"
+            android:title="@string/valves_to_send"
             android:checkable="true"/>
-        <item
-            android:title="@string/show_valves"
-            android:id="@+id/show_valves"
-            android:checkable="true"/>
+        <item android:id="@+id/valves_on_arduino"
+            android:title="@string/valves_on_arduino"
+            android:checkable="true"
+            android:enabled="false"/>
         <item
             android:title="@string/show_errors"
             android:id="@+id/show_errors"
-            android:checkable="true"/>
+            android:checkable="true"
+            android:enabled="false"/>
     </group>
 
 </menu>

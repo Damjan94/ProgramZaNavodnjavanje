@@ -22,6 +22,7 @@
     <string name="add_valve">Add valve</string>
     <string name="add_group">Add group</string>
     <string name="confirm_valve_option_delete">You are about to delete a valve No.:</string>
+    <string name="confirm_valve_group_delete">You are about to delete a valve group named:</string>
     <string name="valve">Valve</string>
     <string name="no_bluetooth">Can\'t find bluetooth</string>
     <string name="enable_bluetooth">Please enable bluetooth, and try again</string>
@@ -56,4 +57,6 @@
     <string name="show_valves_error">Can\'t show valves (did you select a valve group?)</string>
     <string name="cant_add_valve_error">Can\'t add valve (did you select a valve group?)</string>
     <string name="press_one_time_to_exit">Press back one more time to exit</string>
+    <string name="new_group">New group</string>
+    <string name="resource_not_found">Resource not found</string>
 </resources>
